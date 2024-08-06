@@ -24,7 +24,7 @@ function Loginpage() {
   useEffect(() => {
     if (authentication_user.isAuthenticated && !authentication_user.isAdmin && !authentication_user.isDoctor) {
       console.log('authenticated user');
-      navigate('/home');
+      navigate('/');
     }
   }, [authentication_user.isAuthenticated, authentication_user.isAdmin, authentication_user.isDoctor, navigate]);
 
@@ -75,7 +75,7 @@ function Loginpage() {
           })
         );
 
-        navigate('/home');
+        navigate('/');
       }
     } catch (error) {
       console.log(error);

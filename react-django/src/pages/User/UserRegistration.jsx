@@ -11,6 +11,7 @@ function UserRegistration() {
 
     const [usernameError, setUsernameError] = useState('');
     const [emailError, setEmailError] = useState('');
+    const [phoneError, setPhoneError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [cpasswordError, setCPasswordError] = useState('');
     const [loginError, setLoginError] = useState('');
@@ -29,10 +30,11 @@ function UserRegistration() {
         event.preventDefault();
         const username = event.target.username.value;
         const email = event.target.email.value;
+        const phone_number = event.target.phone_number.value;
         const password = event.target.password.value;
         const cpassword = event.target.password_confirm.value;
         const alphabeticRegex = /^[A-Za-z]+$/;
-
+    
         if (!username.trim()) {
             setUsernameError('Username is required*');
             return;
@@ -45,14 +47,24 @@ function UserRegistration() {
         } else {
             setUsernameError('');
         }
-
+    
         if (!email.trim()) {
             setEmailError("Email is required");
             return;
         } else {
             setEmailError('');
         }
-
+    
+        if (!phone_number.trim()){
+            setPhoneError("Phone number is required");
+            return;
+        } else if (phone_number.length !== 10){
+            setPhoneError('Phone number must be 10 digits');
+            return;
+        } else {
+            setPhoneError('');
+        }
+    
         if (!password.trim()) {
             setPasswordError("Password is required");
             return;
@@ -62,28 +74,29 @@ function UserRegistration() {
         } else {
             setPasswordError('');
         }
-
+    
         if (!cpassword.trim()) {
             setCPasswordError('Confirm Password is required *');
             return;
-        } else if (cpassword !== password) {
+        } else if (String(cpassword) !== String(password)) {
             setCPasswordError('Passwords do not match');
             return;
         } else {
             setCPasswordError('');
         }
-
-        const data = {
-            username,
-            email,
-            password
-        };
-
+    
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('email', email);
+        formData.append('phone_number', phone_number);
+        formData.append('password', password);
+    
         try {
-            const res = await axios.post(`${baseURL}/api/users/signup/`, data, {
+            const res = await axios.post(`${baseURL}/api/users/signup/`, formData, {
                 headers: { 'Content-Type': 'application/json' }
             });
-
+            console.log('Response:', res.data);
+    
             if (res.status === 200) {
                 const registeredEmail = res.data.email;
                 localStorage.setItem('registeredEmail', registeredEmail);
@@ -99,6 +112,7 @@ function UserRegistration() {
             }
         }
     };
+    
 
     return (
         <div className="bg-zinc-600">
@@ -127,6 +141,12 @@ function UserRegistration() {
                                             <label htmlFor="email" className="block font-medium text-black">Email</label>
                                             <input type="email" id="email" name="email" placeholder="Enter your email" className="w-full mt-1 p-2 bg-white text-black border border-gray-300 rounded-md focus:outline-none focus:border-blue-500" />
                                             {emailError && <span className="text-sm font-bold text-red-500 mt-1 mb-5">{emailError}</span>}
+                                        </div>
+
+                                        <div className="relative">
+                                            <label htmlFor="phone_number" className="block font-medium text-black">Phone_number</label>
+                                            <input type="nummber" id="phone_number" name="phone_number" placeholder="Enter your phone_number" className="w-full mt-1 p-2 bg-white text-black border border-gray-300 rounded-md focus:outline-none focus:border-blue-500" />
+                                            {phoneError && <span className="text-sm font-bold text-red-500 mt-1 mb-5">{phoneError}</span>}
                                         </div>
 
                                         <div className="relative">
