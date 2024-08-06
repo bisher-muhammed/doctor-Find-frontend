@@ -3,7 +3,7 @@ import authenticationSliceReducer from './authenticationSlice';
 
 const Store = configureStore({
   reducer: {
-    authentication_user: authenticationSliceReducer,
+    authUser: authenticationSliceReducer, // Use the key from your slice
   },
 });
 

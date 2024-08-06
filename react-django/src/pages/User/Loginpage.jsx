@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {jwtDecode} from 'jwt-decode';
 import { useDispatch, useSelector } from 'react-redux';
 import { set_authentication } from '../../Redux/authenticationSlice';
+import { ToastContainer,toast } from 'react-toastify';
 
 
 function Loginpage() {
@@ -17,14 +18,14 @@ function Loginpage() {
   const [passwordError, setPasswordError] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  const authentication_user = useSelector(state => state.authentication_user);
+  const authentication_user = useSelector(state => state.authUser);
   console.log('auth admin', authentication_user.isAdmin);
   console.log('name', authentication_user.name);
 
   useEffect(() => {
     if (authentication_user.isAuthenticated && !authentication_user.isAdmin && !authentication_user.isDoctor) {
       console.log('authenticated user');
-      navigate('/');
+      navigate('/home');
     }
   }, [authentication_user.isAuthenticated, authentication_user.isAdmin, authentication_user.isDoctor, navigate]);
 
@@ -75,7 +76,7 @@ function Loginpage() {
           })
         );
 
-        navigate('/');
+        navigate('/home');
       }
     } catch (error) {
       console.log(error);

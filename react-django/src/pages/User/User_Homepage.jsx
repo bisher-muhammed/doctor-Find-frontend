@@ -7,7 +7,7 @@ import { useSelector } from 'react-redux';
 
 function User_Homepage() {
 
-  const authentication_user = useSelector(state => state.authentication_user);
+  const authentication_user = useSelector(state => state.authUser);
   console.log(authentication_user.name);
   return (
     <div className="min-h-screen flex flex-col">

@@ -18,7 +18,7 @@ function UserRegistration() {
     const [showPassword,setShowPassword] = useState(false)
     const [showCPassword,setShowCPassword] = useState(false)
 
-    const authentication_user = useSelector(state => state.authentication_user);
+    const authentication_user = useSelector(state => state.authUser);
     
     useEffect(() => {
         if (authentication_user.isAuthenticated && !authentication_user.isAdmin) {

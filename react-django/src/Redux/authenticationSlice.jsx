@@ -19,7 +19,7 @@ export const authenticationSlice = createSlice({
       state.isAdmin = action.payload.isAdmin;
       state.isActive = action.payload.isActive;
       state.token = action.payload.token;
-      state.isDoctor = action.payload.token
+      state.isDoctor = action.payload.isDoctor
     },
   },
 });

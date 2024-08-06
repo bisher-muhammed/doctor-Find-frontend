@@ -11,16 +11,21 @@ function User_Navbar() {
         localStorage.clear();
         dispatch(
             set_authentication({
+                userid: null,
                 name: null,
+                token: null,
                 isAuthenticated: false,
                 isAdmin: false,
+                isActive: false,
                 isDoctor: false,
             })
         );
-        navigate('/');
+        navigate('/login/');
     };
 
-    const authentication_user = useSelector(state => state.authentication_user);
+    const authentication_user = useSelector((state) => state.authUser);
+
+    console.log("Authentication state in navbar:", authentication_user);
 
     return (
         <nav className="bg-green-900 p-5 fixed top-0 left-0 w-full z-10">

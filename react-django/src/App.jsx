@@ -12,7 +12,7 @@ function App() {
       <Router>
      
         <Routes>
-          <Route exact path='/' element={<User_Homepage/>}/>
+          <Route exact path='/home' element={<User_Homepage/>}/>
           <Route exact path='/otp' element={<UserOtp/>}/>
           <Route exact path='/signup' element={<UserRegistration />} />
           <Route exact path='/login' element={<Loginpage/>}/>
