@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify'; // Ensure toast is properly imported
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaUser, FaEnvelope, FaPhone, FaLock } from 'react-icons/fa';
 
 function UserRegistration() {
     const baseURL = 'http://127.0.0.1:8000';
@@ -21,7 +21,7 @@ function UserRegistration() {
     const authentication_user = useSelector(state => state.authUser);
     
     useEffect(() => {
-        if (authentication_user.isAuthenticated && !authentication_user.isAdmin) {
+        if (authentication_user.isAuthenticated && !authentication_user.isAdmin && !authentication_user.isDoctor) {
             navigate('/home');
         }
     }, [authentication_user, navigate]);
@@ -115,96 +115,114 @@ function UserRegistration() {
     
 
     return (
-        <div className="bg-zinc-600">
-            <div className="flex flex-col items-center justify-between pt-0 pr-10 pb-0 pl-10 mt-0 mr-auto mb-0 ml-auto max-w-7xl xl:px-5 lg:flex-row">
-                <div className="flex flex-col items-center w-full pt-5 pr-10 pb-20 pl-10 lg:flex-row">
-                    <div className="w-full bg-cover relative max-w-md lg:max-w-2xl lg:w-7/12">
-                        <div className="flex flex-col items-center justify-center w-full h-full relative lg:pr-10 mr-10">
-                            <img src="https://www.freepikcompany.com/img/designers.svg" alt="Health Run" className="btn-" style={{ marginRight: 100 }} />
-                        </div>
-                    </div>
-
-                    <div className="w-full mt-10 mr-0 mb-0 ml-0 relative z-10 max-w-2xl lg:mt-0 lg:w-5/12">
-                        <div className="flex flex-col items-start justify-start pt-10 pr-10 pb-10 pl-10 bg-stone-300 shadow-xl rounded-xl relative z-10">
-                            <p className="w-full text-4xl font-medium text-center text-black leading-snug font-serif">Sign up for an account</p>
-
-                            <div className="w-full mt-6 mr-0 mb-0 ml-0 relative space-y-8">
-                                <div className="bg-teal-950 p-6 rounded-lg">
-                                    <form onSubmit={handleRegistration} className="space-y-4">
-                                        <div className="relative">
-                                            <label htmlFor="username" className="block font-medium text-black">Username</label>
-                                            <input type="text" id="username" name="username" placeholder="Enter your name" className="w-full mt-1 p-2 bg-white text-black border border-gray-300 rounded-md focus:outline-none focus:border-blue-500" />
-                                            {usernameError && <span className="text-sm font-bold text-red-500 mt-1 mb-5">{usernameError}</span>}
-                                        </div>
-
-                                        <div className="relative">
-                                            <label htmlFor="email" className="block font-medium text-black">Email</label>
-                                            <input type="email" id="email" name="email" placeholder="Enter your email" className="w-full mt-1 p-2 bg-white text-black border border-gray-300 rounded-md focus:outline-none focus:border-blue-500" />
-                                            {emailError && <span className="text-sm font-bold text-red-500 mt-1 mb-5">{emailError}</span>}
-                                        </div>
-
-                                        <div className="relative">
-                                            <label htmlFor="phone_number" className="block font-medium text-black">Phone_number</label>
-                                            <input type="nummber" id="phone_number" name="phone_number" placeholder="Enter your phone_number" className="w-full mt-1 p-2 bg-white text-black border border-gray-300 rounded-md focus:outline-none focus:border-blue-500" />
-                                            {phoneError && <span className="text-sm font-bold text-red-500 mt-1 mb-5">{phoneError}</span>}
-                                        </div>
-
-                                        <div className="relative">
-                                            <label htmlFor="password" className="block font-medium text-black">Password</label>
-                                            <div className="relative">
-                                                <input
-                                                    type={showPassword ? 'text' : 'password'}
-                                                    id="password"
-                                                    name="password"
-                                                    placeholder="Enter your password"
-                                                    className="w-full mt-1 p-2 bg-white text-black border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowPassword(!showPassword)}
-                                                    className="absolute inset-y-0 right-0 flex items-center pr-3"
-                                                >
-                                                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                                                </button>
-                                            </div>
-                                            {passwordError && <span className="text-sm font-bold text-red-500 mt-1 mb-5">{passwordError}</span>}
-                                        </div>
-
-                                        <div className="relative">
-                                            <label htmlFor="password_confirm" className="block font-medium text-black">Confirm Password</label>
-                                            <div className="relative">
-                                                <input
-                                                    type={showCPassword ? 'text' : 'password'}
-                                                    id="password_confirm"
-                                                    name="password_confirm"
-                                                    placeholder="Re-enter your password"
-                                                    className="w-full mt-1 p-2 bg-white text-black border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowCPassword(!showCPassword)}
-                                                    className="absolute inset-y-0 right-0 flex items-center pr-3"
-                                                >
-                                                    {showCPassword ? <FaEyeSlash /> : <FaEye />}
-                                                </button>
-                                            </div>
-                                            {cpasswordError && <span className="text-sm font-bold text-red-500 mt-1 mb-5">{cpasswordError}</span>}
-                                        </div>
-
-
-
-                                        <div className="relative">
-                                            <input type="submit" value="Submit" className="w-full mt-1 p-2 bg-red-500 text-white font-medium rounded-md cursor-pointer hover:bg-green-700" />
-                                        </div>
-                                    </form>
-                                </div>
+        <div className="bg-gradient-to-r from-neutral-900 via-slate-900 to-zinc-600 min-h-screen flex items-center justify-center">
+            <div className="flex flex-col lg:flex-row bg-white bg-opacity-90 shadow-xl rounded-lg overflow-hidden w-full max-w-4xl">
+                <div className="w-full lg:w-1/2 p-8 flex flex-col justify-center">
+                    <h2 className="text-4xl font-extrabold text-center text-gray-800 mb-8">Sign Up</h2>
+                    <form onSubmit={handleRegistration} className="space-y-6">
+                        <div>
+                            <label htmlFor="username" className="block text-lg font-medium text-gray-700">Username</label>
+                            <div className="relative mt-1">
+                                <FaUser className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400" />
+                                <input
+                                    type="text"
+                                    id="username"
+                                    name="username"
+                                    placeholder="Enter your name"
+                                    className="w-full pl-10 p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                />
                             </div>
+                            {usernameError && <span className="text-sm font-medium text-red-500 mt-1">{usernameError}</span>}
                         </div>
-                    </div>
+
+                        <div>
+                            <label htmlFor="email" className="block text-lg font-medium text-gray-700">Email</label>
+                            <div className="relative mt-1">
+                                <FaEnvelope className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400" />
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    placeholder="Enter your email"
+                                    className="w-full pl-10 p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                />
+                            </div>
+                            {emailError && <span className="text-sm font-medium text-red-500 mt-1">{emailError}</span>}
+                        </div>
+
+                        <div>
+                            <label htmlFor="phone_number" className="block text-lg font-medium text-gray-700">Phone Number</label>
+                            <div className="relative mt-1">
+                                <FaPhone className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400" />
+                                <input
+                                    type="text"
+                                    id="phone_number"
+                                    name="phone_number"
+                                    placeholder="Enter your phone number"
+                                    className="w-full pl-10 p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                />
+                            </div>
+                            {phoneError && <span className="text-sm font-medium text-red-500 mt-1">{phoneError}</span>}
+                        </div>
+
+                        <div>
+                            <label htmlFor="password" className="block text-lg font-medium text-gray-700">Password</label>
+                            <div className="relative mt-1">
+                                <FaLock className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400" />
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    id="password"
+                                    name="password"
+                                    placeholder="Enter your password"
+                                    className="w-full pl-10 p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                >
+                                    {showPassword ? <FaEyeSlash className="text-gray-600" /> : <FaEye className="text-gray-600" />}
+                                </button>
+                            </div>
+                            {passwordError && <span className="text-sm font-medium text-red-500 mt-1">{passwordError}</span>}
+                        </div>
+
+                        <div>
+                            <label htmlFor="password_confirm" className="block text-lg font-medium text-gray-700">Confirm Password</label>
+                            <div className="relative mt-1">
+                                <FaLock className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400" />
+                                <input
+                                    type={showCPassword ? 'text' : 'password'}
+                                    id="password_confirm"
+                                    name="password_confirm"
+                                    placeholder="Re-enter your password"
+                                    className="w-full pl-10 p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCPassword(!showCPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                >
+                                    {showCPassword ? <FaEyeSlash className="text-gray-600" /> : <FaEye className="text-gray-600" />}
+                                </button>
+                            </div>
+                            {cpasswordError && <span className="text-sm font-medium text-red-500 mt-1">{cpasswordError}</span>}
+                        </div>
+
+                        <div>
+                            <button
+                                type="submit"
+                                className="w-full py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white font-medium rounded-lg shadow-lg hover:from-teal-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            >
+                                Register
+                            </button>
+                            {loginError && <span className="text-sm font-medium text-red-500 mt-4 block text-center">{loginError}</span>}
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     );
 }
 
-export default UserRegistration;
+export default React.memo(UserRegistration);

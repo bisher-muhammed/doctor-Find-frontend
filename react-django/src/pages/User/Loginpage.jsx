@@ -5,6 +5,7 @@ import {jwtDecode} from 'jwt-decode';
 import { useDispatch, useSelector } from 'react-redux';
 import { set_authentication } from '../../Redux/authenticationSlice';
 import { ToastContainer,toast } from 'react-toastify';
+import login from '../../assets/login.jpg'
 
 
 function Loginpage() {
@@ -91,9 +92,10 @@ function Loginpage() {
 
   return (
     <div>
-      <div className="main-h-screen flex">
-        <div className="w-1/2 flex items-center justify-center bg-slate-200">
-          <img src="https://www.scnsoft.com/education-industry/elearning-portal/elearning-portals-cover-picture.svg" alt="Advertising" className="max-w-full max-h-full" />
+      <div className="main-h-screen flex ">
+        <div className="w-1/2 flex items-center justify-center bg-teal-200 relative">
+        <div className="relative w-full h-full"></div>
+        <img src={login} alt="Description" className="absolute inset-0 w-full h-full" />
         </div>
         <div className="w-1/2 flex-auto items-center justify-center-bg-slate-200">
           <div className="max-w-mid w-full bg-yello-400 shadow-md rounded-lg p-8">
