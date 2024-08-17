@@ -20,10 +20,15 @@ const slotSlice = createSlice({
                 ? state.selectedSlots.filter(id => id !== slotId)
                 : [...state.selectedSlots, slotId];
         },
+
+        deleteSlot: (state, action) => {
+            const slotId = action.payload;
+            state.slots = state.slots.filter(slot => slot.id !== slotId);
+            state.selectedSlots = state.selectedSlots.filter(id => id !== slotId);
+        },
     },
 });
 
-
-
-export const { setSlots, toggleSlotSelection } = slotSlice.actions;
+export const { setSlots, toggleSlotSelection, deleteSlot } = slotSlice.actions;
 export default slotSlice.reducer;
+

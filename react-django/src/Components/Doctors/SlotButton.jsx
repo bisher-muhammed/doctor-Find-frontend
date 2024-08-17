@@ -2,15 +2,17 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import moment from "moment";
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { format, parse } from 'date-fns';
 
 function SlotButton() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [startTime, setStartTime] = useState('12:00');
-    const [endTime, setEndTime] = useState('13:00');
+    const [startTime, setStartTime] = useState(new Date()); // Start time as Date object
+    const [endTime, setEndTime] = useState(new Date()); // End time as Date object
     const [duration, setDuration] = useState(30);
-    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+    const [endDate, setEndDate] = useState(new Date()); // End date as Date object
 
     const handleGenerateSlot = async () => {
         setLoading(true);
@@ -22,25 +24,26 @@ function SlotButton() {
             return;
         }
 
-        // Convert startTime and endTime from 24-hour to 12-hour format for display
-        const formattedStartTime = moment(startTime, "HH:mm").format("h:mm A");
-        const formattedEndTime = moment(endTime, "HH:mm").format("h:mm A");
+        // Convert to 12-hour format
+        const formatTime = (date) => format(date, "h:mm a");
+        const formattedStartTime = formatTime(startTime);
+        const formattedEndTime = formatTime(endTime);
 
-        // Convert the 12-hour formatted time back to 24-hour format for backend
-        const startTime24Hour = moment(formattedStartTime, "h:mm A").format("HH:mm");
-        const endTime24Hour = moment(formattedEndTime, "h:mm A").format("HH:mm");
+        // Convert endDate to string
+        const formattedEndDate = format(endDate, 'yyyy-MM-dd');
 
-        if (moment(startTime24Hour, "HH:mm").isAfter(moment(endTime24Hour, "HH:mm"))) {
+        // Validate times to ensure end time is after start time
+        if (startTime >= endTime) {
             toast.error('Start time cannot be after end time');
             setLoading(false);
             return;
         }
 
         const data = {
-            start_time: startTime24Hour, // 24-hour formatted time for backend
-            end_time: endTime24Hour, // 24-hour formatted time for backend
+            start_time: formattedStartTime, // 12-hour formatted time
+            end_time: formattedEndTime, // 12-hour formatted time
             slot_duration: duration,
-            end_date: endDate
+            end_date: formattedEndDate
         };
 
         console.log('Payload being sent:', data);
@@ -77,21 +80,27 @@ function SlotButton() {
             <div className="space-y-4 border p-4 rounded-lg shadow-md">
                 <div>
                     <label htmlFor="startTime" className="block text-sm font-medium text-gray-700">Start Time</label>
-                    <input
-                        type="time"
-                        id="startTime"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
+                    <DatePicker
+                        selected={startTime}
+                        onChange={(date) => setStartTime(date)}
+                        showTimeSelect
+                        showTimeSelectOnly
+                        timeIntervals={15}
+                        timeCaption="Time"
+                        dateFormat="h:mm aa"
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                     />
                 </div>
                 <div>
                     <label htmlFor="endTime" className="block text-sm font-medium text-gray-700">End Time</label>
-                    <input
-                        type="time"
-                        id="endTime"
-                        value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
+                    <DatePicker
+                        selected={endTime}
+                        onChange={(date) => setEndTime(date)}
+                        showTimeSelect
+                        showTimeSelectOnly
+                        timeIntervals={15}
+                        timeCaption="Time"
+                        dateFormat="h:mm aa"
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                     />
                 </div>
@@ -107,11 +116,11 @@ function SlotButton() {
                 </div>
                 <div>
                     <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">End Date</label>
-                    <input
-                        type="date"
-                        id="endDate"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
+                    <DatePicker
+                        selected={endDate}
+                        onChange={(date) => setEndDate(date)}
+                        minDate={new Date()} // Prevent past dates
+                        dateFormat="yyyy-MM-dd"
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                     />
                 </div>
