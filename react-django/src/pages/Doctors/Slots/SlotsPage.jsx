@@ -4,8 +4,7 @@ import { setSlots, toggleSlotSelection } from "../../../Redux/slotSlice";
 import axios from "axios";
 import { toast } from "react-toastify";
 import moment from "moment";
-import { MdDelete, MdEdit } from 'react-icons/md';
-import SlotEdit from './SlotEdit';
+import { MdDelete } from 'react-icons/md';
 
 const formatSlot = (slot) => {
     if (!slot.start_time || !slot.end_time) {
@@ -34,7 +33,6 @@ const SlotsPage = () => {
     const [loading, setLoading] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [slotToDelete, setSlotToDelete] = useState(null);
-    const [editingSlot, setEditingSlot] = useState(null); // State to track which slot is being edited
 
     const fetchSlots = useCallback(async () => {
         setLoading(true);
@@ -84,12 +82,18 @@ const SlotsPage = () => {
     }, [dispatch]);
 
     const handleDeleteClick = useCallback((slotId) => {
-        setSlotToDelete(slotId);
-        setShowConfirm(true);
+        if (slotId === undefined) {
+            console.error('Slot ID is undefined');
+        } else {
+            console.log('Selected slot ID:', slotId);
+            setSlotToDelete(slotId);
+            setShowConfirm(true);
+        }
     }, []);
 
     const handleConfirmDelete = useCallback(async () => {
         if (slotToDelete !== null) {
+            console.log('Slot to delete:', slotToDelete);
             try {
                 await axios.delete(`http://127.0.0.1:8000/api/doctors/doctor/delete_slot/${slotToDelete}/`, {
                     headers: {
@@ -162,12 +166,6 @@ const SlotsPage = () => {
                                 >
                                     <MdDelete size={20} />
                                 </button>
-                                <button
-                                    onClick={() => setEditingSlot(slot.id)} // Trigger the edit mode
-                                    className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                                >
-                                    <MdEdit size={20} />
-                                </button>
                             </div>
                         </li>
                     );
@@ -201,16 +199,6 @@ const SlotsPage = () => {
                         </div>
                     </div>
                 </div>
-            )}
-
-            {editingSlot && (
-                <SlotEdit
-                    slotId={editingSlot}
-                    onClose={() => {
-                        setEditingSlot(null); // Close the edit form
-                        fetchSlots(); // Refresh slots after editing
-                    }}
-                />
             )}
         </div>
     );

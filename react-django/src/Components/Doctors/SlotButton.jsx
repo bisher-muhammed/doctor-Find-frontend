@@ -4,15 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 
 function SlotButton() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [startTime, setStartTime] = useState(new Date()); // Start time as Date object
-    const [endTime, setEndTime] = useState(new Date()); // End time as Date object
-    const [duration, setDuration] = useState(30);
-    const [endDate, setEndDate] = useState(new Date()); // End date as Date object
+    const [startTime, setStartTime] = useState(new Date()); // Default to current time
+    const [endTime, setEndTime] = useState(new Date()); // Default to current time
+    const [duration, setDuration] = useState(30); // Default slot duration
+    const [endDate, setEndDate] = useState(new Date()); // Default to current date
 
     const handleGenerateSlot = async () => {
         setLoading(true);
@@ -24,15 +24,15 @@ function SlotButton() {
             return;
         }
 
-        // Convert to 12-hour format
+        // Format the times for backend
         const formatTime = (date) => format(date, "h:mm a");
         const formattedStartTime = formatTime(startTime);
         const formattedEndTime = formatTime(endTime);
 
-        // Convert endDate to string
+        // Format endDate to string
         const formattedEndDate = format(endDate, 'yyyy-MM-dd');
 
-        // Validate times to ensure end time is after start time
+        // Validate times
         if (startTime >= endTime) {
             toast.error('Start time cannot be after end time');
             setLoading(false);
@@ -40,9 +40,9 @@ function SlotButton() {
         }
 
         const data = {
-            start_time: formattedStartTime, // 12-hour formatted time
-            end_time: formattedEndTime, // 12-hour formatted time
-            slot_duration: duration,
+            start_time: formattedStartTime,
+            end_time: formattedEndTime,
+            duration: duration,
             end_date: formattedEndDate
         };
 
@@ -87,7 +87,7 @@ function SlotButton() {
                         showTimeSelectOnly
                         timeIntervals={15}
                         timeCaption="Time"
-                        dateFormat="h:mm aa"
+                        dateFormat="h:mm aa" // 12-hour format for display
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                     />
                 </div>
@@ -100,7 +100,7 @@ function SlotButton() {
                         showTimeSelectOnly
                         timeIntervals={15}
                         timeCaption="Time"
-                        dateFormat="h:mm aa"
+                        dateFormat="h:mm aa" // 12-hour format for display
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                     />
                 </div>
