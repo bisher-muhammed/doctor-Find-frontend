@@ -4,7 +4,9 @@ import { setSlots, toggleSlotSelection } from "../../../Redux/slotSlice";
 import axios from "axios";
 import { toast } from "react-toastify";
 import moment from "moment";
-import { MdDelete } from 'react-icons/md';
+import {  updateSlot } from '../../../Redux/slotSlice';
+import { MdDelete,MdEdit } from 'react-icons/md';
+import SlotEdit from "./SlotEdit";
 
 const formatSlot = (slot) => {
     if (!slot.start_time || !slot.end_time) {
@@ -33,6 +35,8 @@ const SlotsPage = () => {
     const [loading, setLoading] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [slotToDelete, setSlotToDelete] = useState(null);
+    const [editingSlot, setEditingSlot] = useState(null); // State to manage editing
+    const [showEdit, setShowEdit] = useState(false); 
 
     const fetchSlots = useCallback(async () => {
         setLoading(true);
@@ -101,6 +105,7 @@ const SlotsPage = () => {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json',
                     },
+                    data: { id: slotToDelete }  // Pass the slot ID in the request body
                 });
                 toast.success('Slot deleted successfully');
                 fetchSlots(); // Refresh the slots after deletion
@@ -113,6 +118,7 @@ const SlotsPage = () => {
             }
         }
     }, [slotToDelete, token, fetchSlots]);
+    
 
     const handleCancelDelete = () => {
         setShowConfirm(false);
@@ -143,6 +149,16 @@ const SlotsPage = () => {
         return <div>Loading slots...</div>;
     }
 
+    const handleEditClick = (slotId) => {
+        setEditingSlot(slotId);
+        setShowEdit(true);
+    };
+
+    const handleCloseEdit = () => {
+        setShowEdit(false);
+        setEditingSlot(null);
+    };
+
     return (
         <div className="p-4">
             <h1 className="text-2xl mb-4">Manage Your Slots</h1>
@@ -165,6 +181,12 @@ const SlotsPage = () => {
                                     className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
                                 >
                                     <MdDelete size={20} />
+                                </button>
+                                <button
+                                    onClick={() => handleEditClick(slot.id)}
+                                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                >
+                                    <MdEdit size={20} />
                                 </button>
                             </div>
                         </li>
@@ -197,6 +219,18 @@ const SlotsPage = () => {
                                 Cancel
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {showEdit && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="bg-white p-6 rounded shadow-lg">
+                        <SlotEdit 
+                            slotId={editingSlot} 
+                            onClose={handleCloseEdit} 
+                            onSave={fetchSlots} 
+                        />
                     </div>
                 </div>
             )}

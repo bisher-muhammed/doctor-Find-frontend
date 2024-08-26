@@ -65,7 +65,7 @@ function Sidebar() {
       </li>
       <li>
         <a
-          href="#profile"
+          href="/doctor/doctor_details"
           className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
         >
           <svg
@@ -78,6 +78,22 @@ function Sidebar() {
             <path d="M12 2a5 5 0 0 1 5 5v1a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V7a3 3 0 0 0-3-3zM4 12a8 8 0 0 1 8-8 8 8 0 0 1 8 8v5a8 8 0 0 1-8 8 8 8 0 0 1-8-8v-5z" />
           </svg>
           <span className="ml-3">Profile</span>
+        </a>
+
+        <a
+          href='/doctor/edit_profile'
+          className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
+        >
+          <svg
+            className="w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+            aria-hidden="true"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M12 2a5 5 0 0 1 5 5v1a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V7a3 3 0 0 0-3-3zM4 12a8 8 0 0 1 8-8 8 8 0 0 1 8 8v5a8 8 0 0 1-8 8 8 8 0 0 1-8-8v-5z" />
+          </svg>
+          <span className="ml-3">EditProfile</span>
         </a>
       </li>
       <li>

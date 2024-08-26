@@ -2,17 +2,18 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { format, parseISO, differenceInMinutes, addMinutes } from 'date-fns';
+import { format, differenceInMinutes } from 'date-fns';
 import { toast } from 'react-toastify';
 import { useDispatch } from 'react-redux';
 import { updateSlot } from '../../../Redux/slotSlice';
+import moment from 'moment-timezone';
 
-const SlotEdit = ({ slotId, onClose }) => {
+const SlotEdit = ({ slotId, onClose, onSave }) => {
     const [slot, setSlot] = useState(null);
     const [startTime, setStartTime] = useState(new Date());
     const [endTime, setEndTime] = useState(new Date());
-    const [slotDuration, setSlotDuration] = useState(30); // Default duration in minutes
-    const [endDate, setEndDate] = useState(new Date()); // End date picker
+    const [slotDuration, setSlotDuration] = useState(30);
+    const [endDate, setEndDate] = useState(new Date());
     const [loading, setLoading] = useState(true);
     const dispatch = useDispatch();
     const token = localStorage.getItem('access');
@@ -27,14 +28,12 @@ const SlotEdit = ({ slotId, onClose }) => {
                         'Content-Type': 'application/json',
                     },
                 });
-                const { start_time, end_time } = response.data;
-                const start = parseISO(start_time);
-                const end = parseISO(end_time);
+                const { start_time, end_time, end_date } = response.data;
+                setStartTime(new Date(start_time));
+                setEndTime(new Date(end_time));
+                setSlotDuration(differenceInMinutes(new Date(end_time), new Date(start_time)));
+                setEndDate(new Date(end_date));
                 setSlot(response.data);
-                setStartTime(start);
-                setEndTime(end);
-                setSlotDuration(differenceInMinutes(end, start));
-                setEndDate(end); // Set end date from end_time
             } catch (error) {
                 console.error('Failed to fetch slot details:', error);
                 toast.error('Failed to load slot details');
@@ -46,114 +45,133 @@ const SlotEdit = ({ slotId, onClose }) => {
         fetchSlot();
     }, [slotId, token]);
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        // Format times for backend
+        const formatTime = (date) => format(date, "h:mm a");
+        const formattedStartTime = formatTime(startTime);
+        const formattedEndTime = formatTime(endTime);
+
+        // Format endDate to string
+        const formattedEndDate = format(endDate, 'yyyy-MM-dd');
+
+        // Validate times
+        if (startTime >= endTime) {
+            toast.error('Start time cannot be after end time');
+            return;
+        }
+
+        const payload = {
+            start_time: formattedStartTime,
+            end_time: formattedEndTime,
+            duration: slotDuration,
+            end_date: formattedEndDate,
+        };
+
+        console.log("Payload being sent:", payload);
+
         try {
-            const start_time = format(startTime, "yyyy-MM-dd'T'HH:mm:ssXXX");
-            const end_time = format(endTime, "yyyy-MM-dd'T'HH:mm:ssXXX");
-            const end_date = format(endDate, 'yyyy-MM-dd'); // Updated end date
-
-            await axios.patch(`http://127.0.0.1:8000/api/doctors/doctor/single_slot/${slotId}/`, {
-                start_time,
-                end_time,
-                duration: slotDuration,
-                end_date, // Include end_date
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-            });
-
+            const response = await axios.patch(
+                `http://127.0.0.1:8000/api/doctors/doctor/single_slot/${slotId}/`,
+                payload,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+            console.log('Slot updated successfully:', response.data);
             toast.success('Slot updated successfully');
-            dispatch(updateSlot({ id: slotId, start_time, end_time, duration: slotDuration }));
-            onClose();
+            if (onSave) onSave(); // Notify parent component on save
         } catch (error) {
-            console.error('Failed to update slot:', error.response ? error.response.data : error.message);
+            console.error('Failed to update slot:', error.response?.data || error.message);
             toast.error('Failed to update slot');
+        } finally {
+            setLoading(false);
         }
     };
 
-    if (loading) {
-        return <div>Loading slot details...</div>;
-    }
-
-    if (!slot) {
-        return <div>No slot details found.</div>;
-    }
-
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-white p-6 rounded shadow-lg">
+            <div className="bg-white p-6 rounded shadow-lg max-w-lg w-full">
                 <h2 className="text-lg mb-4">Edit Slot</h2>
-                <div className="mb-4">
-                    <label className="block mb-2">Start Time:</label>
-                    <DatePicker
-                        selected={startTime}
-                        onChange={date => {
-                            setStartTime(date);
-                            // Adjust end time if it’s before the new start time
-                            if (endTime < date) {
+                <form onSubmit={handleSubmit}>
+                    <div className="mb-4">
+                        <label className="block mb-2">Start Time:</label>
+                        <DatePicker
+                            selected={startTime}
+                            onChange={date => {
+                                setStartTime(date);
+                                if (endTime < date) {
+                                    setEndTime(date);
+                                }
+                                setSlotDuration(differenceInMinutes(endTime, date));
+                            }}
+                            showTimeSelect
+                            showTimeSelectOnly
+                            timeIntervals={15}
+                            timeCaption="Time"
+                            dateFormat="h:mm aa"
+                            className="w-full border rounded p-2"
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="block mb-2">End Time:</label>
+                        <DatePicker
+                            selected={endTime}
+                            onChange={date => {
                                 setEndTime(date);
-                            }
-                            // Update slot duration
-                            setSlotDuration(differenceInMinutes(endTime, date));
-                        }}
-                        showTimeSelect
-                        timeFormat="hh:mm aa"
-                        dateFormat="h:mm aa"
-                        className="w-full border rounded p-2"
-                    />
-                </div>
-                <div className="mb-4">
-                    <label className="block mb-2">End Time:</label>
-                    <DatePicker
-                        selected={endTime}
-                        onChange={date => {
-                            setEndTime(date);
-                            // Update slot duration when end time changes
-                            setSlotDuration(differenceInMinutes(date, startTime));
-                        }}
-                        showTimeSelect
-                        timeFormat="hh:mm aa"
-                        dateFormat="h:mm aa"
-                        minDate={startTime} // Ensure end time cannot be before start time
-                        className="w-full border rounded p-2"
-                    />
-                </div>
-                <div className="mb-4">
-                    <label className="block mb-2">Slot Duration (minutes):</label>
-                    <input
-                        type="number"
-                        value={slotDuration}
-                        onChange={e => setSlotDuration(Number(e.target.value))}
-                        min="1"
-                        className="w-full border rounded p-2"
-                    />
-                </div>
-                <div className="mb-4">
-                    <label className="block mb-2">End Date:</label>
-                    <DatePicker
-                        selected={endDate}
-                        onChange={date => setEndDate(date)}
-                        dateFormat="yyyy-MM-dd"
-                        className="w-full border rounded p-2"
-                    />
-                </div>
-                <div className="flex space-x-4 mt-4">
-                    <button
-                        onClick={handleSubmit}
-                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                        Save
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400"
-                    >
-                        Cancel
-                    </button>
-                </div>
+                                setSlotDuration(differenceInMinutes(date, startTime));
+                            }}
+                            showTimeSelect
+                            showTimeSelectOnly
+                            timeIntervals={15}
+                            timeCaption="Time"
+                            dateFormat="h:mm aa"
+                            minDate={startTime}
+                            className="w-full border rounded p-2"
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="block mb-2">Slot Duration (minutes):</label>
+                        <input
+                            type="number"
+                            value={slotDuration}
+                            onChange={e => setSlotDuration(Number(e.target.value))}
+                            min="1"
+                            className="w-full border rounded p-2"
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="block mb-2">End Date:</label>
+                        <DatePicker
+                            selected={endDate}
+                            onChange={date => setEndDate(date)}
+                            minDate={new Date()}
+                            dateFormat="yyyy-MM-dd"
+                            className="w-full border rounded p-2"
+                        />
+                    </div>
+                    <div className="flex space-x-4 mt-4">
+                        <button
+                            type="submit"
+                            className={`px-4 py-2 rounded ${loading ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
+                            disabled={loading}
+                        >
+                            {loading ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );

@@ -1,14 +1,13 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { FaTachometerAlt, FaUsers, FaCogs, FaSignOutAlt, FaCalendarCheck, FaStethoscope } from "react-icons/fa";
-import { Button, Card, CardBody, CardFooter, CardHeader } from "@material-tailwind/react";
+import { Button, Card, CardContent, CardActions, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
 import { useSelector, useDispatch } from "react-redux";
 import { set_authentication } from "../../Redux/authenticationSlice";
 
 function AdminDashboard() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
   const authentication_user = useSelector((state) => state.authUser);
 
   const logout = () => {
@@ -32,99 +31,90 @@ function AdminDashboard() {
   };
 
   return (
-    <div className="flex">
-      <aside className="w-64 bg-gray-800 text-white min-h-screen">
-        <div className="p-4">
-          <h2 className="text-2xl font-bold backgroud-color- bg-red-400">Admin Panel</h2>
+    <div style={{ display: 'flex' }}>
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: 240,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: 240,
+            boxSizing: 'border-box',
+            bgcolor: 'background.default',
+            color: 'text.primary',
+          },
+        }}
+      >
+        <div style={{ padding: 16, backgroundColor: '#333', color: '#fff' }}>
+          <Typography variant="h6" noWrap>
+            Admin Panel
+          </Typography>
         </div>
-        <nav>
-          <ul>
-            <li>
-              <NavLink
-                to="/admin/dashboard"
-                className="flex items-center p-4 hover:bg-gray-700"
-                activeClassName="bg-gray-700"
-              >
-                <FaTachometerAlt className="mr-2 " />
-                Dashboard
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/admin/users"
-                className="flex items-center p-4 hover:bg-gray-700"
-                activeClassName="bg-gray-700"
-              >
-                <FaUsers className="mr-2" />
-                Users
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/admin/doctors"
-                className="flex items-center p-4 hover:bg-gray-700"
-                activeClassName="bg-gray-700"
-              >
-                <FaStethoscope className="mr-2" />
-                Doctors
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/admin/appointments"
-                className="flex items-center p-4 hover:bg-gray-700"
-                activeClassName="bg-gray-700"
-              >
-                <FaCalendarCheck className="mr-2" />
-                Appointments
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/admin/settings"
-                className="flex items-center p-4 hover:bg-gray-700"
-                activeClassName="bg-gray-700"
-              >
-                <FaCogs className="mr-2" />
-                Settings
-              </NavLink>
-            </li>
-            <li>
-              <button
-                onClick={logout}
-                className="flex items-center w-full p-4 hover:bg-gray-700"
-              >
-                <FaSignOutAlt className="mr-2" />
-                Logout
-              </button>
-            </li>
-          </ul>
-        </nav>
-      </aside>
-      <main className="flex-1 p-4 bg-gray-100">
+        <Divider />
+        <List>
+          {[
+            { text: 'Dashboard', icon: <FaTachometerAlt /> },
+            { text: 'Users', icon: <FaUsers /> },
+            { text: 'Doctors', icon: <FaStethoscope /> },
+            { text: 'Appointments', icon: <FaCalendarCheck /> },
+            { text: 'Settings', icon: <FaCogs /> },
+            { text: 'Document List', icon: <FaCogs /> },
+          ].map((item) => (
+            <ListItem button component={NavLink} to={`/admin/${item.text.toLowerCase().replace(' ', '_')}`} key={item.text}>
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItem>
+          ))}
+          <ListItem button onClick={logout}>
+            <ListItemIcon><FaSignOutAlt /></ListItemIcon>
+            <ListItemText primary="Logout" />
+          </ListItem>
+        </List>
+      </Drawer>
+      <main style={{ flexGrow: 1, padding: 24 }}>
         <Card>
-          <CardHeader color="blue" className="text-white">
-            <h2 className="text-2xl">Dashboard</h2>
-          </CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-white p-6 rounded-lg shadow-lg">
-                <h3 className="text-xl font-bold mb-4">Total Users</h3>
-                <p className="text-gray-700">Number of registered users: 500</p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-lg">
-                <h3 className="text-xl font-bold mb-4">Total Doctors</h3>
-                <p className="text-gray-700">Number of registered doctors: 150</p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-lg">
-                <h3 className="text-xl font-bold mb-4">Appointments Today</h3>
-                <p className="text-gray-700">Number of appointments scheduled: 75</p>
-              </div>
+          <Typography variant="h5" component="div" style={{ padding: 16, backgroundColor: 'teal', color: '#fff' }}>
+            Dashboard
+          </Typography>
+          <CardContent>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="div" style={{ backgroundColor: 'gray', color: '#fff', padding: 8 }}>
+                    Total Users
+                  </Typography>
+                  <Typography variant="body1" component="div" style={{ padding: 16 }}>
+                    Number of registered users: 500
+                  </Typography>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="div" style={{ backgroundColor: 'gray', color: '#fff', padding: 8 }}>
+                    Total Doctors
+                  </Typography>
+                  <Typography variant="body1" component="div" style={{ padding: 16 }}>
+                    Number of registered doctors: 150
+                  </Typography>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="div" style={{ backgroundColor: 'gray', color: '#fff', padding: 8 }}>
+                    Appointments Today
+                  </Typography>
+                  <Typography variant="body1" component="div" style={{ padding: 16 }}>
+                    Number of appointments scheduled: 75
+                  </Typography>
+                </CardContent>
+              </Card>
             </div>
-          </CardBody>
-          <CardFooter>
-            <Button color="red">View More</Button>
-          </CardFooter>
+          </CardContent>
+          <CardActions>
+            <Button color="primary" variant="contained" fullWidth>
+              View More
+            </Button>
+          </CardActions>
         </Card>
       </main>
     </div>
@@ -132,4 +122,3 @@ function AdminDashboard() {
 }
 
 export default AdminDashboard;
-

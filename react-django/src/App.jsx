@@ -20,6 +20,11 @@ import DoctorPasswordReset from './pages/Doctors/DoctorPasswordReset';
 import UProfile from './pages/User/Profile/UProfile';
 import EditProfile from './pages/User/Profile/EditProfile';
 import SlotsPage from './pages/Doctors/Slots/SlotsPage';
+import DoctorProfile from './pages/Doctors/DoctorProfile';
+import EditDoctorProfile from './pages/Doctors/EditDoctorProfile';
+import DocumentList from './pages/Admin/DocumentList';
+import DoctorsList from './pages/User/Doctors_list';
+import DoctorDetails from './pages/User/DoctorDetails';
 
 
 
@@ -45,10 +50,12 @@ function App() {
           <Route exact path='/doctor/fpassword' element={<DoctorForgotPassword/>}/>
           <Route exact path='/doctor/FPotp' element={<DoctorFotp/>}/>
           <Route exact path='/doctor/changePassword/:id' element={<DoctorPasswordReset/>}/>
+          <Route exact path='/doctor/doctor_details' element={<DoctorProfile/>}/>
+          <Route exact path='/doctor/edit_profile' element={<EditDoctorProfile/>}/>
 
 
 
-      
+          <Route exact path='/admin/document_list' element={<DocumentList/>}/>
           <Route exact path='/admin/dashboard' element={<AdminDashboard/>}/>
           <Route exact path='/admin/login' element={<AdminLogin/>}/>
 
@@ -61,7 +68,8 @@ function App() {
           <Route exact path='/FPotp' element={<FPotp/>}/>
           <Route exact path='/user_details' element={<UProfile/>}/>
           <Route exact path='/edit_profile' element={<EditProfile/>}/>
-          
+          <Route exact path='/doctors_list' element={<DoctorsList/>}/>
+          <Route path='/doctor_details/:doctorId' element={<DoctorDetails />} />
           
           <Route exact path='/changePassword/:id' element={<Fenterpassword/>}/>
 

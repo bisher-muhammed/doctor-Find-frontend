@@ -30,7 +30,7 @@ function User_Navbar() {
                 <Link to="/" className="text-black text-md font-bold p-4">Find Doctor</Link>
                 <div className="flex space-x-5">
                     <Link to="/" className="text-black hover:text-gray-600">Home</Link>
-                    <Link to="/doctor" className="text-black hover:text-gray-600">Doctor</Link>
+                    <Link to="/doctors_list" className="text-black hover:text-gray-600">Doctor</Link>
                     <Link to="/about" className="text-black hover:text-gray-600">About</Link>
                     <Link to="/contact" className="text-black hover:text-gray-600">Contact</Link>
                 </div>

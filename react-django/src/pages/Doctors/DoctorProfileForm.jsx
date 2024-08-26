@@ -27,7 +27,7 @@ const DoctorProfileForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post(`${baseURL}/api/doctors/doctor/profile/`, formData, {
+    axios.post(`${baseURL}/api/doctors/doctor//`, formData, {
       headers: {
         'Authorization': `Bearer ${getAuthToken()}`,
         'Content-Type': 'application/json'
