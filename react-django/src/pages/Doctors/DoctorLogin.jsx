@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate,Link } from 'react-router-dom';
-import {jwtDecode} from 'jwt-decode';
+import { useNavigate, Link } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';  // Fix the import here if needed, jwt-decode should not be destructured like this
 import { useDispatch, useSelector } from 'react-redux';
 import { set_authentication } from '../../Redux/authenticationSlice';
 import { toast } from 'react-toastify';
@@ -112,6 +112,7 @@ function DoctorLogin() {
                 label="Email"
                 type="email"
                 name="email"
+                autoComplete="email"
                 error={!!emailError}
                 color={emailError ? 'red' : 'blue'}
                 className="w-full"
@@ -127,6 +128,7 @@ function DoctorLogin() {
                 label="Password"
                 type="password"
                 name="password"
+                autoComplete="current-password"
                 error={!!passwordError}
                 color={passwordError ? 'red' : 'blue'}
                 className="w-full"
@@ -151,8 +153,8 @@ function DoctorLogin() {
             </Button>
           </form>
           <div>
-          <Link to="/doctor/fpassword/"><span >Forgot password</span></Link><br />
-          <span>Don't have an account?</span> <Link to="/doctor/register/"><span>| Sign up</span></Link>
+            <Link to="/doctor/fpassword/"><span >Forgot password</span></Link><br />
+            <span>Don't have an account?</span> <Link to="/doctor/register/"><span>| Sign up</span></Link>
           </div>
         </CardBody>
       </Card>

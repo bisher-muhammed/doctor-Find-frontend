@@ -2,8 +2,9 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Card, CardHeader, CardBody, CardFooter, Typography, Button } from "@material-tailwind/react";
+import { Card, CardHeader, CardBody, Typography, Button } from "@material-tailwind/react";
 import { FaUserMd, FaCalendarAlt } from 'react-icons/fa';
+import moment from 'moment';
 import User_Navbar from '../../Components/Users/User_Navbar';
 
 function DoctorDetails() {
@@ -16,6 +17,25 @@ function DoctorDetails() {
     const { doctorId } = useParams();
     const navigate = useNavigate();
     const baseURL = 'http://127.0.0.1:8000'; // Base URL for your API
+
+    const formatSlot = (slot) => {
+        if (!slot.start_time || !slot.end_time) {
+            console.error('Invalid slot time:', slot);
+            return { date: 'Invalid Date', timeRange: 'Invalid Time' };
+        }
+
+        const start = moment(slot.start_time).utc();
+        const end = moment(slot.end_time).utc();
+
+        const formattedDate = start.format('YYYY-MM-DD');
+        const formattedStart = start.format('h:mm A');
+        const formattedEnd = end.format('h:mm A');
+
+        return {
+            date: formattedDate,
+            timeRange: `${formattedStart} - ${formattedEnd}`,
+        };
+    };
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -57,9 +77,29 @@ function DoctorDetails() {
         setSelectedSlot(slot);
     };
 
-    const handleBookNow = () => {
-        alert(`Booking slot: ${selectedSlot.start_time}`);
-        // Redirect to booking page or open a modal for booking
+    const handleBookNow = async () => {
+        if (selectedSlot) {
+            try {
+                const response = await axios.post(
+                    `${baseURL}/api/users/book-slot/${doctorId}/${selectedSlot.id}/`,
+                    {},  // Send an empty object since we don't need to pass any additional data
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                    }
+                );
+                alert(`Booking successful for slot: ${moment(selectedSlot.start_time).format('MMMM D, YYYY h:mm A')}`);
+                navigate('/user/appointments');  // Redirect user to appointments page after successful booking
+            } catch (error) {
+                console.error('Error booking slot:', error.response ? error.response.data : error.message);
+                alert('Booking failed. Please try again.');
+            }
+        } else {
+            alert('Please select a slot before booking.');
+        }
     };
 
     return (
@@ -110,28 +150,32 @@ function DoctorDetails() {
                 <Typography variant="h5" align="center" className="text-gray-800 mb-6 font-bold">Available Slots</Typography>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {slots && slots.length > 0 ? (
-                        slots.map(slot => (
-                            <div
-                                key={slot.id}
-                                className={`p-6 border rounded-lg shadow-lg cursor-pointer ${selectedSlot?.id === slot.id ? 'bg-slate-300 border-teal-500' : 'bg-white border-gray-300'}`}
-                                onClick={() => handleSlotClick(slot)}
-                            >
-                                <Typography variant="body1" className="text-lg font-semibold mb-2">
-                                    {new Date(slot.start_time).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                </Typography>
-                                <Typography variant="body1" className="text-red-600 font-semibold mb-2">
-                                    {`${new Date(slot.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(slot.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-                                </Typography>
-                                <Typography variant="body1" className="text-teal-800 font-semibold">
-                                    Duration: {slot.duration} minutes
-                                </Typography>
-                                {selectedSlot?.id === slot.id && (
-                                    <Button className="mt-4 w-full" color="teal" onClick={handleBookNow}>
-                                        Book Now
-                                    </Button>
-                                )}
-                            </div>
-                        ))
+                        slots.map(slot => {
+                            const { date, timeRange } = formatSlot(slot);
+
+                            return (
+                                <div
+                                    key={slot.id}
+                                    className={`p-6 border rounded-lg shadow-lg cursor-pointer ${selectedSlot?.id === slot.id ? 'bg-slate-300 border-teal-500' : 'bg-white border-gray-300'}`}
+                                    onClick={() => handleSlotClick(slot)}
+                                >
+                                    <Typography variant="body1" className="text-lg font-semibold mb-2">
+                                        {date}
+                                    </Typography>
+                                    <Typography variant="body1" className="text-red-600 font-semibold mb-2">
+                                        {timeRange}
+                                    </Typography>
+                                    <Typography variant="body1" className="text-teal-800 font-semibold">
+                                        Duration: {slot.duration} minutes
+                                    </Typography>
+                                    {selectedSlot?.id === slot.id && (
+                                        <Button className="mt-4 w-full" color="teal" onClick={handleBookNow}>
+                                            Book Now
+                                        </Button>
+                                    )}
+                                </div>
+                            );
+                        })
                     ) : (
                         <div className="col-span-full text-center">
                             <Typography variant="body1">No available slots found.</Typography>

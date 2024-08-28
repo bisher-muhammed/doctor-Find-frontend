@@ -21,6 +21,11 @@ function ProfileSidebar({ profileData }) {
                         </NavLink>
                     </li>
                     <li>
+                        <NavLink to='/appointments' className={({ isActive }) => isActive ? "text-yellow-400 flex items-center" : "text-white flex items-center hover:text-yellow-400"}>
+                            <FaUser className="mr-2" /> Appointments
+                        </NavLink>
+                    </li>
+                    <li>
                         <NavLink to="/settings" className={({ isActive }) => isActive ? "text-yellow-400 flex items-center" : "text-white flex items-center hover:text-yellow-400"}>
                             <FaCog className="mr-2" /> Settings
                         </NavLink>

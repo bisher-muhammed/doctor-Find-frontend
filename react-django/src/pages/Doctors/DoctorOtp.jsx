@@ -42,7 +42,7 @@ function DoctorOtp() {
       });
       if (res.status === 200) {
         dispatch(set_authentication({
-          isAuthenticated: true,
+          isAuthenticated: false,
           isAdmin: false,
           isDoctor: true,
           token: res.data.token,
@@ -52,7 +52,7 @@ function DoctorOtp() {
         }));
 
         console.log('Account verified successfully');
-        navigate('/doctor/home');
+        navigate('/doctor/login');
         toast.success('Account verified successfully', {
           position: "top-center",
           autoClose: 5000,

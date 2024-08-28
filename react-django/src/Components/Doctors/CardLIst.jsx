@@ -3,7 +3,7 @@ import React from 'react';
 const Card = ({ title, count, bgColor }) => {
   return (
     <div
-      className={`relative flex flex-col mt-6 text-white shadow-md bg-clip-border rounded-xl w-96`}
+      className={`relative flex flex-col text-white shadow-md bg-clip-border rounded-xl w-full`} // Full width of the grid column
       style={{ backgroundColor: bgColor }}
     >
       <div className="p-6">
@@ -15,11 +15,10 @@ const Card = ({ title, count, bgColor }) => {
         </p>
       </div>
       <div className="p-6 pt-0">
-        
+        {/* Additional content or styling */}
       </div>
     </div>
   );
 };
 
 export default Card;
-

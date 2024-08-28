@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setSlots, toggleSlotSelection } from "../../../Redux/slotSlice";
+import { setSlots } from "../../../Redux/slotSlice";
 import axios from "axios";
 import { toast } from "react-toastify";
 import moment from "moment";
-import {  updateSlot } from '../../../Redux/slotSlice';
-import { MdDelete,MdEdit } from 'react-icons/md';
+import { MdDelete, MdEdit } from 'react-icons/md';
 import SlotEdit from "./SlotEdit";
 
 const formatSlot = (slot) => {
@@ -30,13 +29,12 @@ const formatSlot = (slot) => {
 const SlotsPage = () => {
     const dispatch = useDispatch();
     const slots = useSelector(state => state.slots.slots);
-    const selectedSlots = useSelector(state => state.slots.selectedSlots);
     const token = localStorage.getItem('access');
     const [loading, setLoading] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [slotToDelete, setSlotToDelete] = useState(null);
-    const [editingSlot, setEditingSlot] = useState(null); // State to manage editing
-    const [showEdit, setShowEdit] = useState(false); 
+    const [editingSlot, setEditingSlot] = useState(null);
+    const [showEdit, setShowEdit] = useState(false);
 
     const fetchSlots = useCallback(async () => {
         setLoading(true);
@@ -81,10 +79,6 @@ const SlotsPage = () => {
         fetchSlots();
     }, [fetchSlots]);
 
-    const handleSlotSelection = useCallback((slotId) => {
-        dispatch(toggleSlotSelection({ slotId }));
-    }, [dispatch]);
-
     const handleDeleteClick = useCallback((slotId) => {
         if (slotId === undefined) {
             console.error('Slot ID is undefined');
@@ -118,28 +112,11 @@ const SlotsPage = () => {
             }
         }
     }, [slotToDelete, token, fetchSlots]);
-    
 
     const handleCancelDelete = () => {
         setShowConfirm(false);
         setSlotToDelete(null);
     };
-
-    const handleSubmit = useCallback(async () => {
-        try {
-            await axios.post("http://127.0.0.1:8000/api/doctors/doctor/selected_slots/", { slots: selectedSlots }, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-            });
-            toast.success('Selected slots saved successfully');
-        } catch (error) {
-            console.error('Failed to save selected slots:', error);
-            toast.error('Failed to save selected slots');
-        }
-    }, [selectedSlots, token]);
 
     const sortedSlots = useMemo(() => {
         return [...slots].sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
@@ -165,40 +142,33 @@ const SlotsPage = () => {
             <ul className="grid grid-cols-4 gap-4">
                 {sortedSlots.map(slot => {
                     const { date, timeRange } = formatSlot(slot);
+                    const isBooked = slot.is_booked; // Assuming this field exists in your slot data
                     return (
-                        <li key={slot.id} className="flex flex-col items-center p-4 border rounded shadow-md hover:bg-emerald-500">
-                            <span className="text-black">{timeRange}</span>
-                            <span className="mt-1 text-sm text-red-700">{date}</span>
+                        <li key={slot.id} className={`flex flex-col items-center p-4 border rounded shadow-md ${isBooked ? 'bg-gray-300' : 'hover:bg-emerald-500'}`}>
+                            <span className={`text-black ${isBooked ? 'text-gray-600' : ''}`}>{timeRange}</span>
+                            <span className={`mt-1 text-sm ${isBooked ? 'text-gray-500' : 'text-red-700'}`}>{date}</span>
                             <div className="flex space-x-2 mt-2">
-                                <button
-                                    onClick={() => handleSlotSelection(slot.id)}
-                                    className={`px-3 py-1 rounded ${selectedSlots.includes(slot.id) ? 'bg-green-500' : 'bg-red-500'} text-white`}
-                                >
-                                    {selectedSlots.includes(slot.id) ? 'Deselect' : 'Select'}
-                                </button>
-                                <button
-                                    onClick={() => handleDeleteClick(slot.id)}
-                                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                                >
-                                    <MdDelete size={20} />
-                                </button>
-                                <button
-                                    onClick={() => handleEditClick(slot.id)}
-                                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                                >
-                                    <MdEdit size={20} />
-                                </button>
+                                {!isBooked && (
+                                    <>
+                                        <button
+                                            onClick={() => handleDeleteClick(slot.id)}
+                                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                        >
+                                            <MdDelete size={20} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleEditClick(slot.id)}
+                                            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                        >
+                                            <MdEdit size={20} />
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </li>
                     );
                 })}
             </ul>
-            <button
-                onClick={handleSubmit}
-                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
-            >
-                Save Selected Slots
-            </button>
 
             {showConfirm && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -208,13 +178,13 @@ const SlotsPage = () => {
                         <div className="flex space-x-4 mt-4">
                             <button
                                 onClick={handleConfirmDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-700"
                             >
-                                Delete
+                                Confirm
                             </button>
                             <button
                                 onClick={handleCancelDelete}
-                                className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400"
+                                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-700"
                             >
                                 Cancel
                             </button>
@@ -223,16 +193,12 @@ const SlotsPage = () => {
                 </div>
             )}
 
-            {showEdit && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                    <div className="bg-white p-6 rounded shadow-lg">
-                        <SlotEdit 
-                            slotId={editingSlot} 
-                            onClose={handleCloseEdit} 
-                            onSave={fetchSlots} 
-                        />
-                    </div>
-                </div>
+            {showEdit && editingSlot && (
+                <SlotEdit
+                    slotId={editingSlot}
+                    onClose={handleCloseEdit}
+                    fetchSlots={fetchSlots} // Pass fetchSlots to refresh slots after editing
+                />
             )}
         </div>
     );

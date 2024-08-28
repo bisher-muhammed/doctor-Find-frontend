@@ -25,6 +25,10 @@ import EditDoctorProfile from './pages/Doctors/EditDoctorProfile';
 import DocumentList from './pages/Admin/DocumentList';
 import DoctorsList from './pages/User/Doctors_list';
 import DoctorDetails from './pages/User/DoctorDetails';
+import BookingList from './pages/Doctors/Bookings/BookingList';
+import MyAppointments from './pages/User/Bookings/MyAppointments';
+
+
 
 
 
@@ -38,6 +42,8 @@ function App() {
         <Routes>
 
           <Route exact path='/doctor/Slots/Slots' element ={<SlotsPage/>}/>
+          <Route exact path='/doctor/Bookings/bookings' element= {<BookingList/>}/>
+          
 
 
 
@@ -70,6 +76,7 @@ function App() {
           <Route exact path='/edit_profile' element={<EditProfile/>}/>
           <Route exact path='/doctors_list' element={<DoctorsList/>}/>
           <Route path='/doctor_details/:doctorId' element={<DoctorDetails />} />
+          <Route path='/appointments' element={<MyAppointments/>}/>
           
           <Route exact path='/changePassword/:id' element={<Fenterpassword/>}/>
 

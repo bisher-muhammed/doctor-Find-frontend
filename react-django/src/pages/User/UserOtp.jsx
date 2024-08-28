@@ -43,7 +43,7 @@ function UserOtp() {
 
             if (res.status === 200) {
                 dispatch(set_authentication({
-                    isAuthenticated: true,
+                    isAuthenticated: false,
                     isAdmin: false,
                     isDoctor: false,
                     token: res.data.token,
@@ -64,7 +64,7 @@ function UserOtp() {
                     transition: Bounce,
                 });
 
-                navigate('/home');
+                navigate('/login');
                 localStorage.clear();
             } else {
                 toast.error('Verification failed. Please try again.', {
