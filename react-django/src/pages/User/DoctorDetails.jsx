@@ -80,9 +80,10 @@ function DoctorDetails() {
     const handleBookNow = async () => {
         if (selectedSlot) {
             try {
+                // Request booking and payment details from the backend
                 const response = await axios.post(
                     `${baseURL}/api/users/book-slot/${doctorId}/${selectedSlot.id}/`,
-                    {},  // Send an empty object since we don't need to pass any additional data
+                    {},
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -91,8 +92,46 @@ function DoctorDetails() {
                         },
                     }
                 );
-                alert(`Booking successful for slot: ${moment(selectedSlot.start_time).format('MMMM D, YYYY h:mm A')}`);
-                navigate('/user/appointments');  // Redirect user to appointments page after successful booking
+
+                const { razorpay_order_id, razorpay_key_id, amount, currency, booking_id } = response.data;
+
+                // Initialize Razorpay payment
+                const options = {
+                    key: razorpay_key_id,
+                    amount: amount,
+                    currency: currency,
+                    name: "Doctor Appointment",
+                    description: `Booking for ${doctor.username}`,
+                    order_id: razorpay_order_id,
+                    handler: async (response) => {
+                        // On payment success, confirm the booking
+                        try {
+                            await axios.post(`${baseURL}/api/users/verify-payment/`, {
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_signature: response.razorpay_signature,
+                                booking_id: booking_id
+                            }, {
+                                headers: {
+                                    Authorization: `Bearer ${token}`,
+                                    Accept: 'application/json',
+                                    'Content-Type': 'application/json',
+                                }
+                            });
+
+                            // Redirect to the appointments page after successful payment
+                            navigate('/appointments');
+                        } catch (error) {
+                            console.error('Payment verification failed:', error.response ? error.response.data : error.message);
+                            alert("Payment verification failed. Please try again.");
+                        }
+                    },
+                    theme: {
+                        color: "#3399cc",
+                    },
+                };
+                const rzp1 = new window.Razorpay(options);
+                rzp1.open();
             } catch (error) {
                 console.error('Error booking slot:', error.response ? error.response.data : error.message);
                 alert('Booking failed. Please try again.');

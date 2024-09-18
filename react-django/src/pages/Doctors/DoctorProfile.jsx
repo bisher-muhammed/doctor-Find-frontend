@@ -68,7 +68,7 @@ function DoctorProfile() {
         );
     }
 
-    const { username, email, phone_number, first_name, last_name, specification, bio, experience, available_from, available_to, profile_pic } = profileData;
+    const { username, email, phone_number, first_name, last_name, specification, bio, experience,  profile_pic } = profileData;
 
 return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
@@ -104,12 +104,8 @@ return (
                         <Typography variant="body1" color="textSecondary" paragraph>
                             <strong>Bio:</strong> {bio || 'Not Provided'}
                         </Typography>
-                        <Typography variant="body1" color="textSecondary">
-                            <strong>Available From:</strong> {available_from || 'Not Set'}
-                        </Typography>
-                        <Typography variant="body1" color="textSecondary">
-                            <strong>Available To:</strong> {available_to || 'Not Set'}
-                        </Typography>
+                        
+                        
                     </Grid>
                 </Grid>
             </CardContent>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import moment from 'moment';
@@ -11,17 +11,13 @@ function BookingList() {
     const [error, setError] = useState(null);
     const [statusUpdate, setStatusUpdate] = useState({});
     const navigate = useNavigate();
-    
 
-
-    // Updated formatSlot function
     const formatSlot = (slot) => {
         if (!slot.start_time || !slot.end_time) {
             console.error('Invalid slot time:', slot);
             return { date: 'Invalid Date', timeRange: 'Invalid Time' };
         }
 
-        // Convert to UTC moment objects and format
         const start = moment(slot.start_time).utc();
         const end = moment(slot.end_time).utc();
 
@@ -107,18 +103,16 @@ function BookingList() {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Update Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {bookings.map((booking) => {
-                            // Check if booking and its properties are defined
-                            const doctorUsername = booking.user?.username || 'N/A';
                             const userUsername = booking.user?.username || 'N/A';
                             const { date, timeRange } = formatSlot(booking.slots || {});
 
                             return (
                                 <tr key={booking.id}>
-                                    
                                     <td className="px-6 py-4 whitespace-nowrap">{userUsername}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{date}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{timeRange}</td>
@@ -137,6 +131,11 @@ function BookingList() {
                                             <option value="completed">Completed</option>
                                             <option value="cancelled">Cancelled</option>
                                         </select>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <Link to={`/doctor/Bookings/booking_details/${booking.id}`} className="text-blue-500 hover:underline">
+                                        View Full Details
+                                    </Link>
                                     </td>
                                 </tr>
                             );

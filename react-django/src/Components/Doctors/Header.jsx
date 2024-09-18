@@ -48,6 +48,8 @@ const Header = () => {
       <li>
         <Link to='/doctor/home' className="text-black p-2 font-medium">Home</Link>
       </li>
+
+
       
       
       <li>
@@ -55,6 +57,10 @@ const Header = () => {
       </li>
       <li>
         <Link to="/doctor/Slots/Slots" className="text-black p-2 font-medium">Slots</Link>
+      </li>
+
+      <li>
+        <Link to='/doctor/chat_rooms' className="text-black p-2 font-medium">romms</Link>
       </li>
       <li>
         <Link to="/contacts" className="text-black p-2 font-medium">Contacts</Link>

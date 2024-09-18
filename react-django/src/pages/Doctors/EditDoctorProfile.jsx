@@ -39,8 +39,7 @@ function EditDoctorProfile() {
         experience: "",
         bio: "",
         profile_pic: null,
-        available_from: "",
-        available_to: ""
+       
     });
 
     useEffect(() => {
@@ -65,8 +64,7 @@ function EditDoctorProfile() {
                     gender: doctorData.gender || "",
                     email: doctorData.user?.email || "",
                     phone: doctorData.user?.phone_number || "",
-                    available_from: doctorData.available_from || "",
-                    available_to: doctorData.available_to || "",
+
                     profile_pic: doctorData.profile_pic || null
                 });
 
@@ -110,7 +108,7 @@ function EditDoctorProfile() {
         if (!formData.first_name) formErrors.first_name = 'First name is required';
         if (!formData.last_name) formErrors.last_name = 'Last name is required';
         if (!formData.specification) formErrors.specification = 'Specialization is required';
-        if (!formData.available_from || !formData.available_to) formErrors.availability = 'Availability is required';
+       
 
         setErrors(formErrors);
         return Object.keys(formErrors).length === 0;
@@ -277,37 +275,7 @@ function EditDoctorProfile() {
                         />
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
-                        <TextField
-                            variant="outlined"
-                            fullWidth
-                            label="Available From"
-                            type="time"
-                            name="available_from"
-                            value={formData.available_from}
-                            onChange={handleChange}
-                            InputLabelProps={{
-                                shrink: true,
-                            }}
-                        />
-                        {errors.availability && <Typography color="error">{errors.availability}</Typography>}
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <TextField
-                            variant="outlined"
-                            fullWidth
-                            label="Available To"
-                            type="time"
-                            name="available_to"
-                            value={formData.available_to}
-                            onChange={handleChange}
-                            InputLabelProps={{
-                                shrink: true,
-                            }}
-                        />
-                        {errors.availability && <Typography color="error">{errors.availability}</Typography>}
-                    </Grid>
+                    
 
                     <Grid item xs={12}>
                         <FormControl fullWidth>

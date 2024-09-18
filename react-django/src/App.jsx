@@ -27,6 +27,17 @@ import DoctorsList from './pages/User/Doctors_list';
 import DoctorDetails from './pages/User/DoctorDetails';
 import BookingList from './pages/Doctors/Bookings/BookingList';
 import MyAppointments from './pages/User/Bookings/MyAppointments';
+import BookingDetails from './pages/Doctors/Bookings/BookingDetails';
+import PaymentComponent from './pages/User/Bookings/PaymentComponent';
+
+import ChatMessage from './pages/Chats/ChatMessage';
+import ChatRoomList from './pages/Chats/ChatRoomList';
+import StartChat from './pages/Chats/StartChat';
+import ChatLayout from './pages/Chats/ChatLayout';
+import DoctorChatRoomList from './pages/Doctors/DoctorChatRoomList';
+import DoctorChatMessage from './pages/Doctors/DoctorChatMessage';
+import DoctorLayout from './Components/Chat/DoctorLayout';
+
 
 
 
@@ -40,9 +51,18 @@ function App() {
       <Router>
      
         <Routes>
+          
+
+        <Route element={<ChatLayout />}>
+        <Route path="/chatrooms" element={<ChatRoomList />} />
+        <Route path="/chats/:roomId" element={<ChatMessage />} />
+        
+        </Route>
+
 
           <Route exact path='/doctor/Slots/Slots' element ={<SlotsPage/>}/>
           <Route exact path='/doctor/Bookings/bookings' element= {<BookingList/>}/>
+          <Route path="/doctor/Bookings/booking_details/:id" element={<BookingDetails />} />
           
 
 
@@ -58,6 +78,13 @@ function App() {
           <Route exact path='/doctor/changePassword/:id' element={<DoctorPasswordReset/>}/>
           <Route exact path='/doctor/doctor_details' element={<DoctorProfile/>}/>
           <Route exact path='/doctor/edit_profile' element={<EditDoctorProfile/>}/>
+          
+
+
+          <Route element={<DoctorLayout/>}>
+          <Route exact path='/doctor/chat_rooms' element={<DoctorChatRoomList/>}/>
+          <Route exact path='/doctor/messages/:roomId' element ={<DoctorChatMessage/>}/>
+          </Route>
 
 
 
@@ -77,6 +104,8 @@ function App() {
           <Route exact path='/doctors_list' element={<DoctorsList/>}/>
           <Route path='/doctor_details/:doctorId' element={<DoctorDetails />} />
           <Route path='/appointments' element={<MyAppointments/>}/>
+          <Route path="/payment/:transactionId" element={<PaymentComponent />} />
+          <Route path="/Call/:roomId/:callId" element={<UserCall />} />
           
           <Route exact path='/changePassword/:id' element={<Fenterpassword/>}/>
 
