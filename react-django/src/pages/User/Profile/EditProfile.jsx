@@ -21,7 +21,7 @@ function EditProfile() {
         state: "",
         city: "",
         country: "",
-        profile_pic: null // Initially set to null
+        profile_pic: null
     });
     const [loading, setLoading] = useState(true);
     const [previewImage, setPreviewImage] = useState(null);
@@ -46,7 +46,7 @@ function EditProfile() {
                     date_of_birth: userData.date_of_birth || "",
                     gender: userData.gender || "",
                     email: userData.user?.email || "",
-                    phone: userData.user?.phone_number || "",
+                    phone: userData.user?.phone || "",
                     address: userData.address || "",
                     state: userData.state || "",
                     city: userData.city || "",
@@ -78,19 +78,19 @@ function EditProfile() {
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         setFormData({ ...formData, profile_pic: file });
-    
+
         if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setPreviewImage(reader.result);
-          };
-          reader.readAsDataURL(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewImage(reader.result);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
     const validateForm = () => {
         let formErrors = {};
-        // validation code
+        // Perform validation here if needed
         setErrors(formErrors);
         return Object.keys(formErrors).length === 0;
     };
@@ -119,9 +119,12 @@ function EditProfile() {
             console.log("Profile updated successfully");
         } catch (error) {
             console.error("Error updating profile:", error);
-            // Handle error response and show appropriate error messages if needed
         }
     };
+
+    if (loading) {
+        return <div>Loading...</div>;
+    }
 
     return (
         <div className="container mx-auto p-6 mt-6">
@@ -208,7 +211,7 @@ function EditProfile() {
                 <div className="mb-4">
                     <label className="block text-black text-sm font-bold mb-2" htmlFor="phone">Phone Number</label>
                     <input
-                        type="tel"
+                        type="number"
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}

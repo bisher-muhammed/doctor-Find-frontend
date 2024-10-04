@@ -3,21 +3,26 @@ import { Route, Routes, useLocation } from 'react-router-dom';
 import DoctorChatRoomList from '../../pages/Doctors/DoctorChatRoomList';
 import DoctorChatMessage from '../../pages/Doctors/DoctorChatMessage';
 
+
 function DoctorLayout() {
   const location = useLocation();
 
   // Decide when to show the chat rooms list as a sidebar
   const showSidebar = location.pathname.startsWith('/doctor/messages');
 
+  
+
   return (
     <div className='flex h-screen bg-white'>
       {/* Sidebar with Chat Room List */}
       {showSidebar && (
+        
         <div className="w-1/3 bg-white border-slate-700 p-4 shadow-md fixed h-full top-0 left-0">
-          <div className="overflow-auto h-[calc(100vh-6rem)]">
-            <DoctorChatRoomList />
-          </div>
-        </div>
+          
+  <div className="overflow-auto h-[calc(100vh-6rem)]">
+    <DoctorChatRoomList />
+  </div>
+</div>
       )}
 
       {/* Main Content Area */}

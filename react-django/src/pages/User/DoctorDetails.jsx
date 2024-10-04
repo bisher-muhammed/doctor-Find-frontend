@@ -3,29 +3,33 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Card, CardHeader, CardBody, Typography, Button } from "@material-tailwind/react";
-import { FaUserMd, FaCalendarAlt } from 'react-icons/fa';
+import { FaUserMd, FaCalendarAlt,FaCreditCard,FaWallet,FaCheck  } from 'react-icons/fa';
+
 import moment from 'moment';
 import User_Navbar from '../../Components/Users/User_Navbar';
+import PaymentSuccessMessage from '../../Components/Users/PaymentSuccessMessage';
 
 function DoctorDetails() {
-    const authentication_user = useSelector(state => state.authUser);
+    const authentication_user = useSelector(state => state.authUser); // Get authenticated user
     const [doctorDetails, setDoctorDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [selectedSlot, setSelectedSlot] = useState(null);
+    const [selectedSlot, setSelectedSlot] = useState(null); // Track selected slot
+    const [paymentMethod, setPaymentMethod] = useState('razorpay'); // Default payment method
+    const [paymentSuccess, setPaymentSuccess] = useState(false); // Payment success flag
     const token = localStorage.getItem('access');
     const { doctorId } = useParams();
     const navigate = useNavigate();
-    const baseURL = 'http://127.0.0.1:8000'; // Base URL for your API
+    const baseURL = 'http://127.0.0.1:8000'; // Base URL for API
 
+    // Format slot time for display
     const formatSlot = (slot) => {
         if (!slot.start_time || !slot.end_time) {
-            console.error('Invalid slot time:', slot);
             return { date: 'Invalid Date', timeRange: 'Invalid Time' };
         }
 
-        const start = moment(slot.start_time).utc();
-        const end = moment(slot.end_time).utc();
+        const start = moment(slot.start_time);
+        const end = moment(slot.end_time);
 
         const formattedDate = start.format('YYYY-MM-DD');
         const formattedStart = start.format('h:mm A');
@@ -37,6 +41,7 @@ function DoctorDetails() {
         };
     };
 
+    // Fetch doctor details on component mount
     useEffect(() => {
         const fetchDetails = async () => {
             if (authentication_user.isAuthenticated && !authentication_user.isAdmin && !authentication_user.isDoctor) {
@@ -53,7 +58,6 @@ function DoctorDetails() {
                     if (error.response && error.response.status === 401) {
                         navigate('/login');
                     } else {
-                        console.error('Error fetching details:', error.response ? error.response.data : error.message);
                         setError(error.response ? error.response.data : error.message);
                     }
                 } finally {
@@ -73,29 +77,39 @@ function DoctorDetails() {
 
     const { doctor, slots } = doctorDetails || {};
 
+    // Handle slot selection
     const handleSlotClick = (slot) => {
         setSelectedSlot(slot);
     };
 
+    // Handle payment method selection
+    const handlePaymentMethodChange = (method) => {
+        setPaymentMethod(method);
+    };
+
+    // Handle booking and payment process
     const handleBookNow = async () => {
-        if (selectedSlot) {
-            try {
-                // Request booking and payment details from the backend
-                const response = await axios.post(
-                    `${baseURL}/api/users/book-slot/${doctorId}/${selectedSlot.id}/`,
-                    {},
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                            Accept: 'application/json',
-                            'Content-Type': 'application/json',
-                        },
-                    }
-                );
-
-                const { razorpay_order_id, razorpay_key_id, amount, currency, booking_id } = response.data;
-
-                // Initialize Razorpay payment
+        if (!selectedSlot) {
+            alert("Please select a slot before booking.");
+            return;
+        }
+    
+        try {
+            const response = await axios.post(
+                `${baseURL}/api/users/book-slot/${doctorId}/${selectedSlot.id}/`,
+                { payment_method: paymentMethod },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+    
+            const { razorpay_order_id, razorpay_key_id, amount, currency, booking_id } = response.data;
+    
+            if (paymentMethod === 'razorpay') {
                 const options = {
                     key: razorpay_key_id,
                     amount: amount,
@@ -104,7 +118,6 @@ function DoctorDetails() {
                     description: `Booking for ${doctor.username}`,
                     order_id: razorpay_order_id,
                     handler: async (response) => {
-                        // On payment success, confirm the booking
                         try {
                             await axios.post(`${baseURL}/api/users/verify-payment/`, {
                                 razorpay_payment_id: response.razorpay_payment_id,
@@ -118,11 +131,15 @@ function DoctorDetails() {
                                     'Content-Type': 'application/json',
                                 }
                             });
-
-                            // Redirect to the appointments page after successful payment
-                            navigate('/appointments');
+    
+                            setPaymentSuccess(true);
+    
+                            // Introduce a small delay before starting the redirect
+                            setTimeout(() => {
+                                navigate('/appointments');
+                            }, 5000); // 3 seconds delay to show the success message
                         } catch (error) {
-                            console.error('Payment verification failed:', error.response ? error.response.data : error.message);
+                            console.error('Payment verification failed:', error);
                             alert("Payment verification failed. Please try again.");
                         }
                     },
@@ -132,98 +149,139 @@ function DoctorDetails() {
                 };
                 const rzp1 = new window.Razorpay(options);
                 rzp1.open();
-            } catch (error) {
-                console.error('Error booking slot:', error.response ? error.response.data : error.message);
-                alert('Booking failed. Please try again.');
+            } else if (paymentMethod === 'wallet') {
+                try {
+                    await axios.post(
+                        `${baseURL}/api/users/wallet_payment/`,
+                        { booking_id: booking_id },
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                                Accept: 'application/json',
+                                'Content-Type': 'application/json',
+                            },
+                        }
+                    );
+                    setPaymentSuccess(true);
+    
+                    // Same small delay before redirecting
+                    setTimeout(() => {
+                        navigate('/appointments');
+                    }, 5000); // 3 seconds delay to show the success message
+                } catch (error) {
+                    console.error('Wallet payment failed:', error);
+                    alert("Wallet payment failed. Please try again.");
+                }
             }
-        } else {
-            alert('Please select a slot before booking.');
+        } catch (error) {
+            console.error('Error booking the slot:', error);
+            alert("Error booking the slot. Please try again.");
         }
     };
 
     return (
-        <div className="container mx-auto p-4 flex flex-wrap">
+        <div className="container mx-auto p-4">
             <User_Navbar />
-            <div className="w-full md:w-1/3 pr-4 mb-4 md:mb-0">
-                {doctor ? (
-                    <Card className="shadow-lg rounded-lg mb-4 border border-gray-200 w-90 mt-14 pt-6 mx-5">
-                        <CardHeader className="relative h-56">
-                            <img
-                                src={`${baseURL}${doctor.profile_pic}`} // Prepend base URL to the profile_pic
-                                alt={`${doctor.username}'s profile`}
-                                className="object-cover rounded-t-lg w-full h-full"
-                            />
-                        </CardHeader>
-                        <CardBody className="p-6">
-                            <Typography variant="h5" color="blue-gray" className="mb-2 font-semibold text-xl text-center">
-                                {doctor.username || 'Username not available'}
-                            </Typography>
-                            <div className="mb-4">
-                                <Typography className="flex items-center mb-2 text-lg font-semibold text-blue-600">
-                                    <FaUserMd className="mr-2 text-blue-500" />
-                                    Specification:
-                                    <span className="ml-2 text-gray-700">{doctor.specification || 'Not available'}</span>
+            <div className="flex flex-col md:flex-row">
+                {/* Doctor Card Section */}
+                <div className="w-full md:w-1/3 px-4 mb-4 md:mb-0">
+                    {doctor ? (
+                        <Card className="shadow-lg rounded-lg mb-4 border border-gray-200 w-90 mt-14 pt-6 mx-5">
+                            <CardHeader className="relative h-56">
+                                <img
+                                    src={`${baseURL}${doctor.profile_pic}`} // Prepend base URL to the profile_pic
+                                    alt={`${doctor.username}'s profile`}
+                                    className="object-cover rounded-t-lg w-full h-full"
+                                />
+                            </CardHeader>
+                            <CardBody className="p-6">
+                                <Typography variant="h5" color="blue-gray" className="mb-2 font-semibold text-xl text-center">
+                                    {doctor.username || 'Username not available'}
                                 </Typography>
-                                <Typography className="flex items-center mb-2 text-lg font-semibold text-red-600">
-                                    <FaCalendarAlt className="mr-2 text-red-500" />
-                                    Experience:
-                                    <span className="ml-2 text-gray-700">{doctor.experience} years</span>
-                                </Typography>
-                                <Typography className="flex items-center mb-2 text-lg font-semibold text-teal-900">
-                                    <FaCalendarAlt className="mr-2 text-teal-500" />
-                                    Email:
-                                    <span className="ml-2 text-gray-700">{doctor.email}</span>
-                                </Typography>
-                            </div>
-                            <Typography className="text-lg font-semibold text-red-400">
-                                Bio:
-                                <p className="mt-1 text-gray-900">{doctor.bio || 'Not available'}</p>
-                            </Typography>
-                        </CardBody>
-                    </Card>
-                ) : (
-                    <Typography align="center" variant="body1">Doctor details not available.</Typography>
-                )}
-            </div>
-            <div className="w-full md:w-2/3">
-                <Typography variant="h5" align="center" className="text-gray-800 mb-6 font-bold">Available Slots</Typography>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {slots && slots.length > 0 ? (
-                        slots.map(slot => {
-                            const { date, timeRange } = formatSlot(slot);
-
-                            return (
-                                <div
-                                    key={slot.id}
-                                    className={`p-6 border rounded-lg shadow-lg cursor-pointer ${selectedSlot?.id === slot.id ? 'bg-slate-300 border-teal-500' : 'bg-white border-gray-300'}`}
-                                    onClick={() => handleSlotClick(slot)}
-                                >
-                                    <Typography variant="body1" className="text-lg font-semibold mb-2">
-                                        {date}
+                                <div className="mb-4">
+                                    <Typography className="flex items-center mb-2 text-lg font-semibold text-blue-600">
+                                        <FaUserMd className="mr-2 text-blue-500" />
+                                        Specification:
+                                        <span className="ml-2 text-gray-700">{doctor.specification || 'Not available'}</span>
                                     </Typography>
-                                    <Typography variant="body1" className="text-red-600 font-semibold mb-2">
-                                        {timeRange}
+                                    <Typography className="flex items-center mb-2 text-lg font-semibold text-red-600">
+                                        <FaCalendarAlt className="mr-2 text-red-500" />
+                                        Experience:
+                                        <span className="ml-2 text-gray-700">{doctor.experience} years</span>
                                     </Typography>
-                                    <Typography variant="body1" className="text-teal-800 font-semibold">
-                                        Duration: {slot.duration} minutes
+                                    <Typography className="flex items-center mb-2 text-lg font-semibold text-teal-900">
+                                        <FaCalendarAlt className="mr-2 text-teal-500" />
+                                        Email:
+                                        <span className="ml-2 text-gray-700">{doctor.email}</span>
                                     </Typography>
-                                    {selectedSlot?.id === slot.id && (
-                                        <Button className="mt-4 w-full" color="teal" onClick={handleBookNow}>
-                                            Book Now
-                                        </Button>
-                                    )}
                                 </div>
-                            );
-                        })
+                                <Typography className="text-lg font-semibold text-red-400">
+                                    Bio:
+                                    <p className="mt-1 text-gray-900">{doctor.bio || 'Not available'}</p>
+                                </Typography>
+                            </CardBody>
+                        </Card>
                     ) : (
-                        <div className="col-span-full text-center">
-                            <Typography variant="body1">No available slots found.</Typography>
+                        <Typography align="center" variant="body1">Doctor details not available.</Typography>
+                    )}
+                </div>
+
+                {/* Available Slots Section */}
+                <div className="w-full md:w-2/3 px-4">
+                    <Typography variant="h5" align="center" className="text-gray-800 mb-6 font-bold">Available Slots</Typography>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {slots && slots.length > 0 ? (
+                            slots.map(slot => {
+                                const { date, timeRange } = formatSlot(slot);
+                                return (
+                                    <div
+                                        key={slot.id}
+                                        className={`p-4 border rounded-lg cursor-pointer ${selectedSlot?.id === slot.id ? 'bg-blue-100 border-blue-500' : 'hover:bg-gray-100'}`}
+                                        onClick={() => handleSlotClick(slot)}
+                                    >
+                                        <Typography className="font-semibold text-lg">{date}</Typography>
+                                        <Typography className="text-gray-600">{timeRange}</Typography>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <Typography align="center" variant="body1">No available slots.</Typography>
+                        )}
+                    </div>
+                    {selectedSlot && (
+                        <div className="mt-4">
+                            <Typography variant="h6" className="font-semibold text-center mb-4">Selected Slot</Typography>
+                            <Typography align="center" className="text-lg">
+                                {formatSlot(selectedSlot).date} - {formatSlot(selectedSlot).timeRange}
+                            </Typography>
                         </div>
                     )}
+
+                    {paymentSuccess && (
+                        <PaymentSuccessMessage />
+                    )}
+                    <div className="mt-8">
+                        <Typography align="center" className="mb-4  font-semibold">Select Payment Method:</Typography>
+                        <div className="flex justify-center space-x-4">
+                            <Button onClick={() => handlePaymentMethodChange('razorpay')} color={paymentMethod === 'razorpay' ? 'blue' : 'gray'} className="flex items-center space-x-2">
+                                <FaCreditCard className="w-5 h-5" />
+                                <span>Razorpay</span>
+                            </Button>
+                            <Button onClick={() => handlePaymentMethodChange('wallet')} color={paymentMethod === 'wallet' ? 'blue' : 'gray'} className="flex items-center space-x-2">
+                                <FaWallet className="w-5 h-5" />
+                                <span>Wallet</span>
+                            </Button>
+                        </div>
+                        <Button color="teal" onClick={handleBookNow} className="mt-6 mx-auto block items-center justify-center space-x-2">
+                        <FaCheck className="w-5 h-5" /> {/* Icon */}
+                        <span>Book Now</span>
+                    </Button>
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
+
 
 export default DoctorDetails;

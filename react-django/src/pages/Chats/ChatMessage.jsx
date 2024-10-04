@@ -6,6 +6,8 @@ import DoctorHeader from './DoctorHeader';
 import { FaFile, FaMicrophone, FaFileAudio, FaFileVideo, FaPlay, FaPause, FaPaperPlane } from 'react-icons/fa';
 import { io } from 'socket.io-client';
 import {jwtDecode} from 'jwt-decode';
+import User_Navbar from '../../Components/Users/User_Navbar';
+
 
 // Modal components
 const ImagePreviewModal = ({ imageUrl, onClose }) => {
@@ -229,7 +231,9 @@ const ChatMessage = () => {
 
   return (
     <div className="w-full h-screen relative flex flex-col mt-4">
-      <DoctorHeader />
+      <User_Navbar/>
+      
+      <DoctorHeader socket={socket}  />
       <h2 className="text-xl font-semibold"></h2>
 
       <div className="flex-1 overflow-auto p-4">

@@ -37,7 +37,13 @@ import ChatLayout from './pages/Chats/ChatLayout';
 import DoctorChatRoomList from './pages/Doctors/DoctorChatRoomList';
 import DoctorChatMessage from './pages/Doctors/DoctorChatMessage';
 import DoctorLayout from './Components/Chat/DoctorLayout';
-
+import UserCall from './pages/User/UserCall';
+import DoctorCall from './pages/Doctors/DoctorCall';
+import HeaderLayout from './Components/Doctors/HeaderLayout';
+import AdminDoctors from './pages/Admin/AdminDoctors';
+import UserWallet from './pages/User/Profile/UserWallet';
+import UserLayout from './Components/Users/UserLayout';
+import AdminUsers from './pages/Admin/AdminUsers';
 
 
 
@@ -49,6 +55,7 @@ function App() {
     <>
     
       <Router>
+      
      
         <Routes>
           
@@ -56,28 +63,32 @@ function App() {
         <Route element={<ChatLayout />}>
         <Route path="/chatrooms" element={<ChatRoomList />} />
         <Route path="/chats/:roomId" element={<ChatMessage />} />
+        <Route path='/DoctorCall/:roomId/:callId' element={<DoctorCall/>}/>
         
         </Route>
 
-
+          <Route element={<HeaderLayout/>}>
+          <Route exact path='/doctor/home' element ={<DoctorHomePage/>}/>
           <Route exact path='/doctor/Slots/Slots' element ={<SlotsPage/>}/>
           <Route exact path='/doctor/Bookings/bookings' element= {<BookingList/>}/>
           <Route path="/doctor/Bookings/booking_details/:id" element={<BookingDetails />} />
+          <Route exact path='/doctor/doctor_details' element={<DoctorProfile/>}/>
+          <Route exact path='/doctor/edit_profile' element={<EditDoctorProfile/>}/>
+          </Route>
           
 
 
 
 
           {/* <Route exact path='/doctor/doctor_profile' element={<DoctorProfileForm/>}/> */}
-          <Route exact path='/doctor/home' element ={<DoctorHomePage/>}/>
+          
           <Route exact path='/doctor/login' element={<DoctorLogin/>}/>
           <Route exact path='/doctor/doctorOtp' element={<DoctorOtp/>}/>
           <Route exact path='/doctor/register' element={<DoctorRegister/>}/>
           <Route exact path='/doctor/fpassword' element={<DoctorForgotPassword/>}/>
           <Route exact path='/doctor/FPotp' element={<DoctorFotp/>}/>
           <Route exact path='/doctor/changePassword/:id' element={<DoctorPasswordReset/>}/>
-          <Route exact path='/doctor/doctor_details' element={<DoctorProfile/>}/>
-          <Route exact path='/doctor/edit_profile' element={<EditDoctorProfile/>}/>
+
           
 
 
@@ -91,6 +102,8 @@ function App() {
           <Route exact path='/admin/document_list' element={<DocumentList/>}/>
           <Route exact path='/admin/dashboard' element={<AdminDashboard/>}/>
           <Route exact path='/admin/login' element={<AdminLogin/>}/>
+          <Route exact path='/admin/doctors_list' element={<AdminDoctors/>}/>
+          <Route exact path='/admin/users_list' element= {<AdminUsers/>}/>
 
           <Route exact path='/' element={<User_Homepage/>}/>
           <Route exact path='/home' element={<User_Homepage/>}/>
@@ -99,21 +112,31 @@ function App() {
           <Route exact path='/login' element={<Loginpage/>}/>
           <Route exact path='/fpassword' element={<ForgotPassword/>}/>
           <Route exact path='/FPotp' element={<FPotp/>}/>
-          <Route exact path='/user_details' element={<UProfile/>}/>
-          <Route exact path='/edit_profile' element={<EditProfile/>}/>
+
+
+          
+          
           <Route exact path='/doctors_list' element={<DoctorsList/>}/>
           <Route path='/doctor_details/:doctorId' element={<DoctorDetails />} />
-          <Route path='/appointments' element={<MyAppointments/>}/>
+          
           <Route path="/payment/:transactionId" element={<PaymentComponent />} />
           <Route path="/Call/:roomId/:callId" element={<UserCall />} />
           
           <Route exact path='/changePassword/:id' element={<Fenterpassword/>}/>
+
+              <Route element={<UserLayout/>}>
+                        <Route exact path='/user_details' element={<UProfile/>}/>
+                        <Route path="/wallet" element={<UserWallet />} />
+                        <Route path="/edit_profile" element={<EditProfile />} />
+                        <Route path="/appointments" element={<MyAppointments />} />
+                    </Route>
 
 
           
 
           
         </Routes>
+        
       </Router>
     </>
   );

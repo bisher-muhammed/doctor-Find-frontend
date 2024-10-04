@@ -3,13 +3,16 @@ import { Route, Routes } from 'react-router-dom';
 import ChatRoomList from './ChatRoomList';
 import ChatMessage from './ChatMessage';
 
+
 const ChatLayout = () => {
   return (
     <div className="flex h-screen bg-white">
       {/* Sidebar */}
-      <div className="w-1/3 bg-white border-slate-700 p-4 shadow-md fixed h-full top-0 left-0">
+      <div className="w-1/3 bg-white border-slate-700 p-8 shadow-md fixed h-full top-0 left-0">
+      
         
         <div className="overflow-auto h-[calc(100vh-6rem)]">
+          
           <ChatRoomList />
         </div>
       </div>

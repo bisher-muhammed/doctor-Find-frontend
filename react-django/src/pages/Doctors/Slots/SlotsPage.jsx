@@ -7,14 +7,16 @@ import moment from "moment";
 import { MdDelete, MdEdit } from 'react-icons/md';
 import SlotEdit from "./SlotEdit";
 
+
+
 const formatSlot = (slot) => {
     if (!slot.start_time || !slot.end_time) {
         console.error('Invalid slot time:', slot);
         return { date: 'Invalid Date', timeRange: 'Invalid Time' };
     }
 
-    const start = moment(slot.start_time).utc();
-    const end = moment(slot.end_time).utc();
+    const start = moment(slot.start_time);  // Removed .utc()
+    const end = moment(slot.end_time);      // Removed .utc()
 
     const formattedDate = start.format('YYYY-MM-DD');
     const formattedStart = start.format('h:mm A');
@@ -46,26 +48,15 @@ const SlotsPage = () => {
                     'Content-Type': 'application/json',
                 },
             });
-
-            const currentDateTime = moment.utc();
-            const expiredSlots = response.data.filter(slot => moment(slot.start_time).utc().isBefore(currentDateTime));
-            const validSlots = response.data.filter(slot => moment(slot.start_time).utc().isSameOrAfter(currentDateTime));
-
-            await Promise.all(expiredSlots.map(async (slot) => {
-                try {
-                    await axios.delete(`http://127.0.0.1:8000/api/doctors/doctor/slots/${slot.id}/`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                        },
-                    });
-                    console.log(`Deleted expired slot with ID: ${slot.id}`);
-                } catch (deleteError) {
-                    console.error(`Failed to delete expired slot with ID: ${slot.id}`, deleteError);
-                }
-            }));
-
+    
+            const currentDateTime = moment();
+            // Filter expired and valid slots
+            const expiredSlots = response.data.filter(slot => moment(slot.start_time).isBefore(currentDateTime));
+            const validSlots = response.data.filter(slot => moment(slot.start_time).isSameOrAfter(currentDateTime));
+    
+            // If you just want to block expired slots without deleting them,
+            // you can add logic here to handle expired slots as needed.
+    
             dispatch(setSlots(validSlots));
         } catch (error) {
             console.error('Failed to fetch slots:', error);
@@ -74,6 +65,7 @@ const SlotsPage = () => {
             setLoading(false);
         }
     }, [dispatch, token]);
+    
 
     useEffect(() => {
         fetchSlots();
@@ -138,15 +130,18 @@ const SlotsPage = () => {
 
     return (
         <div className="p-4">
+            
             <h1 className="text-2xl mb-4">Manage Your Slots</h1>
             <ul className="grid grid-cols-4 gap-4">
                 {sortedSlots.map(slot => {
                     const { date, timeRange } = formatSlot(slot);
                     const isBooked = slot.is_booked; // Assuming this field exists in your slot data
+                    const amount = slot.amount;
                     return (
                         <li key={slot.id} className={`flex flex-col items-center p-4 border rounded shadow-md ${isBooked ? 'bg-gray-300' : 'hover:bg-emerald-500'}`}>
                             <span className={`text-black ${isBooked ? 'text-gray-600' : ''}`}>{timeRange}</span>
                             <span className={`mt-1 text-sm ${isBooked ? 'text-gray-500' : 'text-red-700'}`}>{date}</span>
+                            <span className={`mt-1 text-sm ${isBooked ? 'text-gray-500' : 'text-green-700'}`}>Amount: ₹{amount}</span>
                             <div className="flex space-x-2 mt-2">
                                 {!isBooked && (
                                     <>
@@ -205,3 +200,4 @@ const SlotsPage = () => {
 };
 
 export default SlotsPage;
+

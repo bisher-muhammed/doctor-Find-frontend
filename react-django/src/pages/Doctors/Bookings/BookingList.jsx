@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import moment from 'moment';
-import Header from '../../../Components/Doctors/Header';
 
 function BookingList() {
     const [bookings, setBookings] = useState([]);
@@ -14,20 +13,15 @@ function BookingList() {
 
     const formatSlot = (slot) => {
         if (!slot.start_time || !slot.end_time) {
-            console.error('Invalid slot time:', slot);
             return { date: 'Invalid Date', timeRange: 'Invalid Time' };
         }
 
-        const start = moment(slot.start_time).utc();
-        const end = moment(slot.end_time).utc();
-
-        const formattedDate = start.format('YYYY-MM-DD');
-        const formattedStart = start.format('h:mm A');
-        const formattedEnd = end.format('h:mm A');
+        const start = moment(slot.start_time);
+        const end = moment(slot.end_time);
 
         return {
-            date: formattedDate,
-            timeRange: `${formattedStart} - ${formattedEnd}`,
+            date: start.format('YYYY-MM-DD'),
+            timeRange: `${start.format('h:mm A')} - ${end.format('h:mm A')}`,
         };
     };
 
@@ -43,6 +37,7 @@ function BookingList() {
                 });
 
                 setBookings(response.data);
+                console.log(response.data)
             } catch (error) {
                 if (error.response && error.response.status === 401) {
                     toast.error('Session expired. Please log in again.');
@@ -89,7 +84,6 @@ function BookingList() {
 
     return (
         <div className="p-4">
-            <Header />
             <h1 className="text-2xl mb-4">Your Bookings</h1>
             {bookings.length === 0 ? (
                 <p>No bookings found.</p>
@@ -133,9 +127,9 @@ function BookingList() {
                                         </select>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                    <Link to={`/doctor/Bookings/booking_details/${booking.id}`} className="text-blue-500 hover:underline">
-                                        View Full Details
-                                    </Link>
+                                        <Link to={`/doctor/Bookings/booking_details/${booking.id}`} className="text-blue-500 hover:underline">
+                                            View Full Details
+                                        </Link>
                                     </td>
                                 </tr>
                             );

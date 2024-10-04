@@ -7,7 +7,6 @@ function MyAppointments() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updateError, setUpdateError] = useState(null);
-  const [statusUpdate, setStatusUpdate] = useState({});
   const baseURL = 'http://127.0.0.1:8000';
   const token = localStorage.getItem('access');
 
@@ -37,8 +36,8 @@ function MyAppointments() {
     }
 
     // Convert to UTC moment objects and format
-    const start = moment(slot.start_time).utc();
-    const end = moment(slot.end_time).utc();
+    const start = moment(slot.start_time);
+    const end = moment(slot.end_time);
 
     const formattedDate = start.format('YYYY-MM-DD');
     const formattedStart = start.format('h:mm A');
@@ -52,8 +51,8 @@ function MyAppointments() {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      await axios.patch(`${baseURL}/api/users/my-appointments/${id}/`, 
-        { status: newStatus }, 
+      await axios.patch(`${baseURL}/api/users/bookings/${id}/update/`, 
+        { status: newStatus.toLowerCase() }, // Ensure status is lowercase
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -64,11 +63,12 @@ function MyAppointments() {
       setAppointments((prevAppointments) =>
         prevAppointments.map((appointment) =>
           appointment.id === id
-            ? { ...appointment, status: newStatus }
+            ? { ...appointment, status: newStatus.toLowerCase() }
             : appointment
         )
       );
     } catch (error) {
+      console.error('Error updating appointment status:', error);
       setUpdateError('Failed to update appointment status.');
     }
   };
@@ -107,10 +107,11 @@ function MyAppointments() {
                   <td className="px-6 py-4 whitespace-nowrap">{appointment.status}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{new Date(appointment.created_at).toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {appointment.status === 'Pending' ? (
+                    {appointment.status.toLowerCase() === 'pending' ? (
                       <button
                         onClick={() => handleStatusChange(appointment.id, 'Cancelled')}
-                        className="text-red-500 hover:text-red-700"
+                        className="bg-slate-700 text-white font-semibold py-2 px-4 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50"
+                        title="Cancel"
                       >
                         Cancel
                       </button>

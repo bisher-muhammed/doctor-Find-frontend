@@ -1,5 +1,5 @@
 import React from 'react';
-import Header from '../../Components/Doctors/Header';
+
 import Sidebar from '../../Components/Doctors/Sidebar';
 import Card from '../../Components/Doctors/CardLIst'; // Ensure the correct import
 
@@ -12,7 +12,7 @@ const DoctorHomePage = () => {
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col ml-64"> {/* Add margin-left to offset the sidebar */}
                 {/* Header */}
-                <Header />
+                
 
                 {/* Main Content */}
                 <div className="flex-1 p-6 overflow-y-auto">

@@ -12,11 +12,12 @@ function SlotButton() {
     const [startDate, setStartDate] = useState(new Date());
     const [startTime, setStartTime] = useState(new Date());
     const [endTime, setEndTime] = useState(new Date());
-    const [duration, setDuration] = useState(30);
+    const [durationHours, setDurationHours] = useState(0);
+    const [durationMinutes, setDurationMinutes] = useState(0);
     const [endDate, setEndDate] = useState(new Date());
 
-    const formatDatetime = (date) => format(date, "yyyy-MM-dd'T'HH:mm:ss"); // Format as 'YYYY-MM-DDTHH:mm:ss'
-    const formatDate = (date) => format(date, 'yyyy-MM-dd'); // Format date as 'YYYY-MM-DD'
+    const formatDatetime = (date) => format(date, "yyyy-MM-dd'T'HH:mm:ss");
+    const formatDate = (date) => format(date, 'yyyy-MM-dd');
 
     const handleGenerateSlot = async () => {
         setLoading(true);
@@ -28,24 +29,17 @@ function SlotButton() {
             return;
         }
 
-        // Combine date and time
         const formattedStartTime = formatDatetime(new Date(startDate.setHours(startTime.getHours(), startTime.getMinutes())));
         const formattedEndTime = formatDatetime(new Date(startDate.setHours(endTime.getHours(), endTime.getMinutes())));
         const formattedStartDate = formatDate(startDate);
         const formattedEndDate = formatDate(endDate);
 
-        console.log("Formatted Start Time (UTC):", formattedStartTime);
-        console.log("Formatted End Time (UTC):", formattedEndTime);
-        console.log("Start Date:", formattedStartDate);
-        console.log("End Date:", formattedEndDate);
-
-        // Validation
         const startDateTime = new Date(`${formattedStartDate}T${startTime.toISOString().split('T')[1]}`);
         const endDateTime = new Date(`${formattedStartDate}T${endTime.toISOString().split('T')[1]}`);
-        const endFullDateTime = new Date(`${formattedEndDate}T${endTime.toISOString().split('T')[1]}`);
         const currentTime = new Date();
 
-        if (!isValid(startDateTime) || !isValid(endDateTime) || !isValid(endFullDateTime)) {
+        // Validation checks
+        if (!isValid(startDateTime) || !isValid(endDateTime)) {
             toast.error('Invalid date or time');
             setLoading(false);
             return;
@@ -57,21 +51,22 @@ function SlotButton() {
             return;
         }
 
-        if (isBefore(new Date(`${formattedEndDate}T23:59:59`), startDateTime)) {
-            toast.error('End date must be after start date');
-            setLoading(false);
-            return;
-        }
-
         if (isToday(startDateTime) && isBefore(startDateTime, currentTime)) {
             toast.error('Start time cannot be in the past on the current day');
             setLoading(false);
             return;
         }
 
-        const slotDurationMinutes = differenceInMinutes(endDateTime, startDateTime); // Duration in minutes
-        if (duration <= 0 || duration > slotDurationMinutes) {
+        const totalDuration = durationHours * 60 + durationMinutes;
+        if (totalDuration <= 0) {
             toast.error('Invalid slot duration');
+            setLoading(false);
+            return;
+        }
+
+        const slotDurationMinutes = differenceInMinutes(endDateTime, startDateTime);
+        if (slotDurationMinutes < totalDuration) {
+            toast.error('The duration cannot exceed the available time between start and end.');
             setLoading(false);
             return;
         }
@@ -79,22 +74,17 @@ function SlotButton() {
         const data = {
             start_time: formattedStartTime,
             end_time: formattedEndTime,
-            duration: duration,
+            duration: totalDuration,
             start_date: formattedStartDate,
             end_date: formattedEndDate,
         };
 
-        console.log('Payload being sent:', data);
-
         try {
-            // Check if slot already exists
+            // Fetch existing slots for the selected date
             const response = await axios.get(
                 "http://127.0.0.1:8000/api/doctors/doctor/slots/",
                 {
-                    params: {
-                        start_time: formattedStartTime,
-                        end_time: formattedEndTime,
-                    },
+                    params: { date: formattedStartDate }, // Assuming the API accepts a date parameter
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
@@ -102,8 +92,17 @@ function SlotButton() {
                 }
             );
 
-            if (response.data.exists) {
-                toast.error('Slot already exists');
+            const existingSlots = response.data.slots || []; // Assuming response contains slots array
+
+            // Check for a slot with the same start time
+            const slotWithSameStartTime = existingSlots.some(slot => {
+                const existingStart = new Date(slot.start_time).getTime();
+                const newStart = startDateTime.getTime();
+                return existingStart === newStart; // Check for exact start time match
+            });
+
+            if (slotWithSameStartTime) {
+                toast.error('A slot already exists with the same start time.');
                 setLoading(false);
                 return;
             }
@@ -128,7 +127,6 @@ function SlotButton() {
             }
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
-            console.error('Error generating slot:', errorMessage);
             toast.error(`Error generating slot: ${errorMessage}`);
         } finally {
             setLoading(false);
@@ -174,16 +172,29 @@ function SlotButton() {
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                     />
                 </div>
-                <div>
-                    <label htmlFor="slotDuration" className="block text-sm font-medium text-gray-700">Slot Duration (minutes)</label>
-                    <input
-                        type="number"
-                        id="slotDuration"
-                        value={duration}
-                        onChange={(e) => setDuration(Number(e.target.value))}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                        min="1"
-                    />
+                <div className="flex space-x-2">
+                    <div className="w-1/2">
+                        <label htmlFor="durationHours" className="block text-sm font-medium text-gray-700">Duration (Hours)</label>
+                        <input
+                            type="number"
+                            id="durationHours"
+                            value={durationHours}
+                            onChange={(e) => setDurationHours(Number(e.target.value))}
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+                            min="0"
+                        />
+                    </div>
+                    <div className="w-1/2">
+                        <label htmlFor="durationMinutes" className="block text-sm font-medium text-gray-700">Duration (Minutes)</label>
+                        <input
+                            type="number"
+                            id="durationMinutes"
+                            value={durationMinutes}
+                            onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+                            min="0"
+                        />
+                    </div>
                 </div>
                 <div>
                     <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">End Date</label>

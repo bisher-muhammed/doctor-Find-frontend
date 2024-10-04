@@ -7,6 +7,8 @@ import {jwtDecode} from 'jwt-decode';
 import { FaFile, FaMicrophone, FaPaperPlane, FaPlay, FaPause, FaImage, FaVideo } from 'react-icons/fa';
 import UserHeader from '../../Components/Chat/UserHeader';
 
+
+
 const ImagePreviewModal = ({ imageUrl, onClose }) => {
   if (!imageUrl) return null;
 
@@ -212,6 +214,7 @@ const DoctorChatComponent = () => {
 
   return (
     <div className="w-full h-screen relative flex flex-col mt-4">
+      
       <UserHeader/>
     <h2 className="text-xl font-semibold"></h2>
       <div className="flex-1 overflow-x-auto p-4 bg-white">

@@ -20,7 +20,8 @@ function BookingDetails() {
                     },
                 });
                 setBooking(response.data);
-                console.log(response.data)
+                console.log('Fetching booking details for ID:', id);
+
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching booking details:', error);
