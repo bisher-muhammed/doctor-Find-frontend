@@ -1,96 +1,104 @@
-import React,{useEffect,useRef,useState} from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import { ZegoUIKitPrebuilt } from '@zegocloud/zego-uikit-prebuilt';
-import {jwtDecode} from 'jwt-decode'; // Corrected import for jwt-decode
+import { jwtDecode } from 'jwt-decode'; // Corrected import for jwt-decode
 import { io } from 'socket.io-client';
-const DoctorCall = () =>{
-    const {roomId} = useParams();
+
+const SOCKET_URL = 'http://127.0.0.1:8000';
+const APP_ID = 827751106;
+const SERVER_SECRET = "ae15619cffa26b4920a5375c946575c0";
+
+const DoctorCall = () => {
+    const { roomId } = useParams();
     const containerRef = useRef(null);
     const navigate = useNavigate();
-    const token = localStorage.getItem('access')
+    const token = localStorage.getItem('access');
 
-    const [isRoomJoined,setIsRoomJoined] = useState(false)
-    const [user,setUser] = useState(null);
-    const [username,setUsername] = useState("Default user")
+    const [user, setUser] = useState(null);
+    const [username, setUsername] = useState("Default User");
+    const [isInCall, setIsInCall] = useState(false);
 
-    useEffect(()=>{
-        if(token) {
-            try{
-                const decodedToken = jwtDecode(token)
-                setUser(decodedToken?.user_id?.toString())
-                setUsername(decodedToken?.username||"Default")
+    const zegoInstance = useRef(null);
 
-            }catch(error) {
-                console.error("invalid token:",token)
-                
+    // Decode the JWT token to retrieve user info
+    const decodeToken = () => {
+        if (token) {
+            try {
+                const decodedToken = jwtDecode(token);
+                setUser(decodedToken?.user_id?.toString());
+                setUsername(decodedToken?.username || "Default");
+            } catch (error) {
+                console.error("Invalid token:", token);
             }
         }
-    },[token])
+    };
 
     useEffect(() => {
-        if (!containerRef.current || isRoomJoined || !user || !username) return;
+        decodeToken();
+    }, [token]);
 
+    useEffect(() => {
         const joinMeeting = async () => {
-            const appId = 827751106; // Use your actual App ID
-            const serverSecret = "ae15619cffa26b4920a5375c946575c0"; // Use your actual Server Secret
-            const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
-                appId,
-                serverSecret,
-                roomId,
-                user,
-                username
-            );
+            if (!containerRef.current || !user || !username) return;
 
-            const zc = ZegoUIKitPrebuilt.create(kitToken);
-            zc.joinRoom({
-                container: containerRef.current,
-                scenario: {
-                    mode: ZegoUIKitPrebuilt.OneONoneCall,
-                },
-                showScreenSharingButton: false,
-                showPreJoinView: false,
-                turnOnCameraWhenJoining: false,
-                turnOnMicrophoneWhenJoining: true,
-                showLeaveRoomConfirmDialog: false,
-                onLeaveRoom: () => navigate('/chats/roomId'),
-                onUserLeave: () => navigate('/chats/roomId'),
-            });
+            try {
+                const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+                    APP_ID,
+                    SERVER_SECRET,
+                    roomId,
+                    user,
+                    username
+                );
 
-            setIsRoomJoined(true);
+                if (zegoInstance.current) {
+                    console.warn("Already in a call. Ignoring join request.");
+                    return;
+                }
+
+                const zc = ZegoUIKitPrebuilt.create(kitToken);
+                await zc.joinRoom({
+                    container: containerRef.current,
+                    scenario: {
+                        mode: ZegoUIKitPrebuilt.OneONoneCall,
+                    },
+                    showScreenSharingButton: false,
+                    showPreJoinView: false,  // Disable pre-join view
+                    turnOnCameraWhenJoining: true, // Ensure camera is turned on
+                    turnOnMicrophoneWhenJoining: true, // Ensure microphone is turned on
+                    showLeaveRoomConfirmDialog: false, // Disable leave confirmation dialog
+                    onLeaveRoom: () => {
+                        console.log('Doctor left the room');
+                        setIsInCall(false); // Reset call state when leaving
+                        navigate(`/doctor/messages/${roomId}`); // Navigate back to chat page
+                    },
+                    onUserLeave: () => navigate(`/doctor/messages/${roomId}`), // If the other user leaves
+                });
+
+                zegoInstance.current = zc; // Save instance
+                setIsInCall(true); // Mark the doctor as in call
+            } catch (error) {
+                console.error("Error joining meeting:", error);
+            }
         };
 
         joinMeeting();
 
         return () => {
-            console.log('Leaving room');
-            setIsRoomJoined(false);
-        };
-    }, [roomId, user, username]); // Ensure username is included
-
-    // Handle incoming call messages (socket setup)
-    useEffect(() => {
-        const handleAudioMessage = (data) => {
-            if (data.content === "Calling") {
-                alert("Incoming call...");
-            }
-            if (data.content === "call_declined") {
-                alert("The call was declined.");
+            // Clean up on component unmount
+            if (zegoInstance.current) {
+                zegoInstance.current.destroy(); // Destroy the Zego instance
+                zegoInstance.current = null; // Reset instance
+                setIsInCall(false); // Reset call state
             }
         };
+    }, [roomId, user, username]);
 
-        // Initialize socket connection (replace with your actual socket server URL)
-        const socket = io('http://127.0.0.1:8000');
-        socket.on("receive_message", handleAudioMessage);
-
-        return () => {
-            socket.off("receive_message", handleAudioMessage);
-            socket.disconnect();
-        };
-    }, []);
+    
 
     return (
-        <div style={{ height: '100vh', width: '100vw', backgroundColor: 'grey' }}>
-            <div ref={containerRef} style={{ height: '100vh', width: '100vw', backgroundColor: 'lightgrey' }} />
+        <div style={{ height: '100vh', width: '100vw' }}>
+            {/* Container for video and audio feed */}
+            <div ref={containerRef} style={{ height: '100vh', width: '100vw' }} />
         </div>
     );
 };

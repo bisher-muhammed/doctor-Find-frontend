@@ -44,6 +44,8 @@ import AdminDoctors from './pages/Admin/AdminDoctors';
 import UserWallet from './pages/User/Profile/UserWallet';
 import UserLayout from './Components/Users/UserLayout';
 import AdminUsers from './pages/Admin/AdminUsers';
+import SalesReport from './pages/Admin/SalesReport';
+import DoctorNotification from './Components/Doctors/DoctorNotification';
 
 
 
@@ -63,7 +65,8 @@ function App() {
         <Route element={<ChatLayout />}>
         <Route path="/chatrooms" element={<ChatRoomList />} />
         <Route path="/chats/:roomId" element={<ChatMessage />} />
-        <Route path='/DoctorCall/:roomId/:callId' element={<DoctorCall/>}/>
+        
+        
         
         </Route>
 
@@ -88,6 +91,9 @@ function App() {
           <Route exact path='/doctor/fpassword' element={<DoctorForgotPassword/>}/>
           <Route exact path='/doctor/FPotp' element={<DoctorFotp/>}/>
           <Route exact path='/doctor/changePassword/:id' element={<DoctorPasswordReset/>}/>
+          <Route exact path='/doctor/Doctor_call/:roomId/:callId' element={<DoctorCall/>}/>
+          <Route exact path='/doctor/notification'element = {<DoctorNotification/>}/>
+          
 
           
 
@@ -95,6 +101,7 @@ function App() {
           <Route element={<DoctorLayout/>}>
           <Route exact path='/doctor/chat_rooms' element={<DoctorChatRoomList/>}/>
           <Route exact path='/doctor/messages/:roomId' element ={<DoctorChatMessage/>}/>
+          
           </Route>
 
 
@@ -104,6 +111,7 @@ function App() {
           <Route exact path='/admin/login' element={<AdminLogin/>}/>
           <Route exact path='/admin/doctors_list' element={<AdminDoctors/>}/>
           <Route exact path='/admin/users_list' element= {<AdminUsers/>}/>
+          <Route exact path='/admin/sales_report'element ={<SalesReport/>}/>
 
           <Route exact path='/' element={<User_Homepage/>}/>
           <Route exact path='/home' element={<User_Homepage/>}/>
@@ -112,6 +120,7 @@ function App() {
           <Route exact path='/login' element={<Loginpage/>}/>
           <Route exact path='/fpassword' element={<ForgotPassword/>}/>
           <Route exact path='/FPotp' element={<FPotp/>}/>
+          <Route path="/Call/:roomId/:callId" element={<UserCall />} />
 
 
           
@@ -120,7 +129,7 @@ function App() {
           <Route path='/doctor_details/:doctorId' element={<DoctorDetails />} />
           
           <Route path="/payment/:transactionId" element={<PaymentComponent />} />
-          <Route path="/Call/:roomId/:callId" element={<UserCall />} />
+          
           
           <Route exact path='/changePassword/:id' element={<Fenterpassword/>}/>
 

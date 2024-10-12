@@ -2,8 +2,8 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Card, CardHeader, CardBody, Typography, Button } from "@material-tailwind/react";
-import { FaUserMd, FaCalendarAlt,FaCreditCard,FaWallet,FaCheck  } from 'react-icons/fa';
+import { Card, CardHeader, CardBody, Typography, Button, Spinner, Radio } from "@material-tailwind/react";
+import { FaUserMd, FaCalendarAlt, FaCreditCard, FaWallet, FaCheck, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
 import moment from 'moment';
 import User_Navbar from '../../Components/Users/User_Navbar';
@@ -22,43 +22,36 @@ function DoctorDetails() {
     const navigate = useNavigate();
     const baseURL = 'http://127.0.0.1:8000'; // Base URL for API
 
-    // Format slot time for display
-    const formatSlot = (slot) => {
-        if (!slot.start_time || !slot.end_time) {
-            return { date: 'Invalid Date', timeRange: 'Invalid Time' };
-        }
+    // Filter states
+    const [showFilter, setShowFilter] = useState(false); // Toggle filter box
+    const [dateFilter, setDateFilter] = useState(''); // Date filter input
+    const [timeFilter, setTimeFilter] = useState(''); // Time filter input
+    const [filteredSlots, setFilteredSlots] = useState([]); // Filtered slots
 
+    // Format the slot time for display
+    const formatSlot = (slot) => {
         const start = moment(slot.start_time);
         const end = moment(slot.end_time);
-
-        const formattedDate = start.format('YYYY-MM-DD');
-        const formattedStart = start.format('h:mm A');
-        const formattedEnd = end.format('h:mm A');
-
         return {
-            date: formattedDate,
-            timeRange: `${formattedStart} - ${formattedEnd}`,
+            date: start.format('YYYY-MM-DD'),
+            timeRange: `${start.format('h:mm A')} - ${end.format('h:mm A')}`
         };
     };
 
-    // Fetch doctor details on component mount
+    // Fetch doctor details and available slots
     useEffect(() => {
         const fetchDetails = async () => {
             if (authentication_user.isAuthenticated && !authentication_user.isAdmin && !authentication_user.isDoctor) {
                 try {
                     const response = await axios.get(`${baseURL}/api/users/available_slots/${doctorId}/`, {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                            Accept: 'application/json',
-                            'Content-Type': 'application/json',
-                        }
+                        headers: { Authorization: `Bearer ${token}` },
                     });
                     setDoctorDetails(response.data);
+                    setFilteredSlots(response.data.slots); // Set filtered slots initially to all available slots
                 } catch (error) {
+                    setError(error.response ? error.response.data : error.message);
                     if (error.response && error.response.status === 401) {
                         navigate('/login');
-                    } else {
-                        setError(error.response ? error.response.data : error.message);
                     }
                 } finally {
                     setLoading(false);
@@ -68,54 +61,49 @@ function DoctorDetails() {
                 setLoading(false);
             }
         };
-
         fetchDetails();
     }, [doctorId, token, authentication_user, navigate]);
 
-    if (loading) return <div className="text-center p-4">Loading...</div>;
-    if (error) return <div className="text-center p-4">Error loading details: {error}</div>;
-
-    const { doctor, slots } = doctorDetails || {};
-
-    // Handle slot selection
-    const handleSlotClick = (slot) => {
-        setSelectedSlot(slot);
-    };
+    // Filter slots based on date or time
+    useEffect(() => {
+        if (doctorDetails && doctorDetails.slots) {
+            const filtered = doctorDetails.slots.filter(slot => {
+                const { date, timeRange } = formatSlot(slot);
+                const timeMatch = timeFilter ? timeRange.includes(timeFilter) : true;
+                const dateMatch = dateFilter ? date === dateFilter : true;
+                return timeMatch && dateMatch;
+            });
+            setFilteredSlots(filtered);
+        }
+    }, [dateFilter, timeFilter, doctorDetails]);
 
     // Handle payment method selection
     const handlePaymentMethodChange = (method) => {
         setPaymentMethod(method);
     };
 
-    // Handle booking and payment process
+    // Handle booking confirmation and payment
     const handleBookNow = async () => {
         if (!selectedSlot) {
             alert("Please select a slot before booking.");
             return;
         }
-    
+
         try {
-            const response = await axios.post(
-                `${baseURL}/api/users/book-slot/${doctorId}/${selectedSlot.id}/`,
-                { payment_method: paymentMethod },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
-    
+            const response = await axios.post(`${baseURL}/api/users/book-slot/${doctorId}/${selectedSlot.id}/`, {
+                payment_method: paymentMethod,
+            }, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
             const { razorpay_order_id, razorpay_key_id, amount, currency, booking_id } = response.data;
-    
+
             if (paymentMethod === 'razorpay') {
                 const options = {
                     key: razorpay_key_id,
-                    amount: amount,
-                    currency: currency,
+                    amount,
+                    currency,
                     name: "Doctor Appointment",
-                    description: `Booking for ${doctor.username}`,
                     order_id: razorpay_order_id,
                     handler: async (response) => {
                         try {
@@ -123,55 +111,23 @@ function DoctorDetails() {
                                 razorpay_payment_id: response.razorpay_payment_id,
                                 razorpay_order_id: response.razorpay_order_id,
                                 razorpay_signature: response.razorpay_signature,
-                                booking_id: booking_id
-                            }, {
-                                headers: {
-                                    Authorization: `Bearer ${token}`,
-                                    Accept: 'application/json',
-                                    'Content-Type': 'application/json',
-                                }
-                            });
-    
+                                booking_id
+                            }, { headers: { Authorization: `Bearer ${token}` } });
                             setPaymentSuccess(true);
-    
-                            // Introduce a small delay before starting the redirect
-                            setTimeout(() => {
-                                navigate('/appointments');
-                            }, 5000); // 3 seconds delay to show the success message
+                            setTimeout(() => { navigate('/appointments'); }, 5000);
                         } catch (error) {
                             console.error('Payment verification failed:', error);
                             alert("Payment verification failed. Please try again.");
                         }
                     },
-                    theme: {
-                        color: "#3399cc",
-                    },
+                    theme: { color: "#3399cc" },
                 };
                 const rzp1 = new window.Razorpay(options);
                 rzp1.open();
             } else if (paymentMethod === 'wallet') {
-                try {
-                    await axios.post(
-                        `${baseURL}/api/users/wallet_payment/`,
-                        { booking_id: booking_id },
-                        {
-                            headers: {
-                                Authorization: `Bearer ${token}`,
-                                Accept: 'application/json',
-                                'Content-Type': 'application/json',
-                            },
-                        }
-                    );
-                    setPaymentSuccess(true);
-    
-                    // Same small delay before redirecting
-                    setTimeout(() => {
-                        navigate('/appointments');
-                    }, 5000); // 3 seconds delay to show the success message
-                } catch (error) {
-                    console.error('Wallet payment failed:', error);
-                    alert("Wallet payment failed. Please try again.");
-                }
+                await axios.post(`${baseURL}/api/users/wallet_payment/`, { booking_id }, { headers: { Authorization: `Bearer ${token}` } });
+                setPaymentSuccess(true);
+                setTimeout(() => { navigate('/appointments'); }, 5000);
             }
         } catch (error) {
             console.error('Error booking the slot:', error);
@@ -179,109 +135,137 @@ function DoctorDetails() {
         }
     };
 
+    // Loading and error states
+    if (loading) return <div className="flex justify-center items-center min-h-screen"><Spinner /></div>;
+    if (error) return <div className="text-center p-4">Error loading details: {error}</div>;
+
+    const { doctor } = doctorDetails || {};
+
     return (
-        <div className="container mx-auto p-4">
+        <div className="container mx-auto p-4 min-h-screen">
             <User_Navbar />
-            <div className="flex flex-col md:flex-row">
-                {/* Doctor Card Section */}
-                <div className="w-full md:w-1/3 px-4 mb-4 md:mb-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-20">
+                <div className="md:col-span-1">
                     {doctor ? (
-                        <Card className="shadow-lg rounded-lg mb-4 border border-gray-200 w-90 mt-14 pt-6 mx-5">
+                        <Card className="shadow-lg rounded-lg border border-gray-200 py-7">
                             <CardHeader className="relative h-56">
-                                <img
-                                    src={`${baseURL}${doctor.profile_pic}`} // Prepend base URL to the profile_pic
-                                    alt={`${doctor.username}'s profile`}
-                                    className="object-cover rounded-t-lg w-full h-full"
-                                />
+                                <img src={`${baseURL}${doctor.profile_pic}`} alt={doctor.username} className="object-cover w-full h-full rounded-t-lg" />
                             </CardHeader>
-                            <CardBody className="p-6">
-                                <Typography variant="h5" color="blue-gray" className="mb-2 font-semibold text-xl text-center">
-                                    {doctor.username || 'Username not available'}
-                                </Typography>
-                                <div className="mb-4">
-                                    <Typography className="flex items-center mb-2 text-lg font-semibold text-blue-600">
-                                        <FaUserMd className="mr-2 text-blue-500" />
-                                        Specification:
-                                        <span className="ml-2 text-gray-700">{doctor.specification || 'Not available'}</span>
-                                    </Typography>
-                                    <Typography className="flex items-center mb-2 text-lg font-semibold text-red-600">
-                                        <FaCalendarAlt className="mr-2 text-red-500" />
-                                        Experience:
-                                        <span className="ml-2 text-gray-700">{doctor.experience} years</span>
-                                    </Typography>
-                                    <Typography className="flex items-center mb-2 text-lg font-semibold text-teal-900">
-                                        <FaCalendarAlt className="mr-2 text-teal-500" />
-                                        Email:
-                                        <span className="ml-2 text-gray-700">{doctor.email}</span>
-                                    </Typography>
+                            <CardBody>
+                                <Typography variant="h5" className="text-center mb-4">{doctor.username || 'Username not available'}</Typography>
+                                <div className="flex flex-col space-y-4">
+                                    <div className="flex items-center">
+                                        <FaUserMd className="text-blue-500 mr-2" />
+                                        <span>Specification: <strong>{doctor.specification || 'Not available'}</strong></span>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <FaCalendarAlt className="text-red-500 mr-2" />
+                                        <span>Experience: <strong>{doctor.experience} years</strong></span>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <FaCalendarAlt className="text-teal-500 mr-2" />
+                                        <span>Email: <strong>{doctor.email}</strong></span>
+                                    </div>
                                 </div>
-                                <Typography className="text-lg font-semibold text-red-400">
-                                    Bio:
-                                    <p className="mt-1 text-gray-900">{doctor.bio || 'Not available'}</p>
-                                </Typography>
+                                <Typography variant="body2" className="mt-4 text-gray-700">{doctor.bio || 'Bio not available'}</Typography>
                             </CardBody>
                         </Card>
-                    ) : (
-                        <Typography align="center" variant="body1">Doctor details not available.</Typography>
-                    )}
+                    ) : <Typography align="center">Doctor details not available.</Typography>}
                 </div>
 
-                {/* Available Slots Section */}
-                <div className="w-full md:w-2/3 px-4">
-                    <Typography variant="h5" align="center" className="text-gray-800 mb-6 font-bold">Available Slots</Typography>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {slots && slots.length > 0 ? (
-                            slots.map(slot => {
-                                const { date, timeRange } = formatSlot(slot);
-                                return (
-                                    <div
-                                        key={slot.id}
-                                        className={`p-4 border rounded-lg cursor-pointer ${selectedSlot?.id === slot.id ? 'bg-blue-100 border-blue-500' : 'hover:bg-gray-100'}`}
-                                        onClick={() => handleSlotClick(slot)}
-                                    >
-                                        <Typography className="font-semibold text-lg">{date}</Typography>
-                                        <Typography className="text-gray-600">{timeRange}</Typography>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <Typography align="center" variant="body1">No available slots.</Typography>
-                        )}
+                <div className="md:col-span-2">
+                    <Typography variant="h5" className="text-center font-bold mb-6">Available Slots</Typography>
+
+                    {/* Filter Button */}
+                    <div className="flex justify-between items-center mb-4">
+                        <Button 
+                            onClick={() => setShowFilter(!showFilter)}
+                            className="flex items-center"
+                        >
+                            Filter Slots 
+                            {showFilter ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />}
+                        </Button>
                     </div>
-                    {selectedSlot && (
-                        <div className="mt-4">
-                            <Typography variant="h6" className="font-semibold text-center mb-4">Selected Slot</Typography>
-                            <Typography align="center" className="text-lg">
-                                {formatSlot(selectedSlot).date} - {formatSlot(selectedSlot).timeRange}
-                            </Typography>
+
+                    {/* Filter Box */}
+                    {showFilter && (
+                        <div className="mb-4 p-4 border rounded-lg bg-gray-50">
+                            <div>
+                                <label className="block mb-2">Filter by Date:</label>
+                                <input 
+                                    type="date" 
+                                    value={dateFilter} 
+                                    onChange={(e) => setDateFilter(e.target.value)} 
+                                    className="border rounded p-2 mb-4 w-full"
+                                />
+                            </div>
+                            <div>
+                                <label className="block mb-2">Filter by Time:</label>
+                                <input 
+                                    type="text" 
+                                    value={timeFilter} 
+                                    onChange={(e) => setTimeFilter(e.target.value)} 
+                                    className="border rounded p-2 w-full" 
+                                    placeholder="Enter time range (e.g., 10:00 AM)"
+                                />
+                            </div>
                         </div>
                     )}
 
-                    {paymentSuccess && (
-                        <PaymentSuccessMessage />
-                    )}
-                    <div className="mt-8">
-                        <Typography align="center" className="mb-4  font-semibold">Select Payment Method:</Typography>
-                        <div className="flex justify-center space-x-4">
-                            <Button onClick={() => handlePaymentMethodChange('razorpay')} color={paymentMethod === 'razorpay' ? 'blue' : 'gray'} className="flex items-center space-x-2">
-                                <FaCreditCard className="w-5 h-5" />
-                                <span>Razorpay</span>
-                            </Button>
-                            <Button onClick={() => handlePaymentMethodChange('wallet')} color={paymentMethod === 'wallet' ? 'blue' : 'gray'} className="flex items-center space-x-2">
-                                <FaWallet className="w-5 h-5" />
-                                <span>Wallet</span>
-                            </Button>
+                    {/* Available slots */}
+                    {filteredSlots.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {filteredSlots.map(slot => (
+                                <div
+                                    key={slot.id}
+                                    className={`p-4 border rounded-lg ${selectedSlot?.id === slot.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+                                    onClick={() => setSelectedSlot(slot)}
+                                >
+                                    <h5 className="text-lg font-semibold">{formatSlot(slot).date}</h5>
+                                    <p className="text-gray-700">{formatSlot(slot).timeRange}</p>
+                                    {selectedSlot?.id === slot.id && <FaCheck className="text-green-500 mt-2" />}
+                                </div>
+                            ))}
                         </div>
-                        <Button color="teal" onClick={handleBookNow} className="mt-6 mx-auto block items-center justify-center space-x-2">
-                        <FaCheck className="w-5 h-5" /> {/* Icon */}
-                        <span>Book Now</span>
-                    </Button>
+                    ) : (
+                        <Typography variant="body2" className="text-center">No available slots.</Typography>
+                    )}
+
+                    {/* Payment Method */}
+                    <div className="mt-6">
+                        <Typography variant="h6" className="font-bold mb-4">Select Payment Method</Typography>
+                        <div className="flex items-center space-x-6">
+                            <Radio 
+                                name="paymentMethod" 
+                                label="Razorpay" 
+                                value="razorpay" 
+                                checked={paymentMethod === 'razorpay'} 
+                                onChange={() => handlePaymentMethodChange('razorpay')} 
+                            />
+                            <Radio 
+                                name="paymentMethod" 
+                                label="Wallet" 
+                                value="wallet" 
+                                checked={paymentMethod === 'wallet'} 
+                                onChange={() => handlePaymentMethodChange('wallet')} 
+                            />
+                        </div>
                     </div>
+
+                    {/* Book Now Button */}
+                    <div className="mt-6 flex justify-center">
+                        <Button onClick={handleBookNow} disabled={!selectedSlot}>
+                            <FaCreditCard className="mr-2" />
+                            Book Now
+                        </Button>
+                    </div>
+
+                    {/* Payment Success Message */}
+                    {paymentSuccess && <PaymentSuccessMessage />}
                 </div>
             </div>
         </div>
     );
 }
-
 
 export default DoctorDetails;

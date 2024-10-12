@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setRooms } from "../../Redux/ChatSlice";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+
 
 function DoctorChatRoomList() {
   const dispatch = useDispatch();
@@ -12,6 +13,7 @@ function DoctorChatRoomList() {
   const baseURL = 'http://127.0.0.1:8000';
   const token = localStorage.getItem('access');
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -38,9 +40,15 @@ function DoctorChatRoomList() {
     navigate(`/doctor/messages/${roomId}`);
   };
 
+  // Filter rooms based on search term
+  const filteredRooms = rooms.filter(room =>
+    room.patient_username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="container mx-auto shadow-lg rounded-lg">
-      {/* Header */}
+      
+      
       <div className="px-5 py-5 flex justify-between items-center bg-white border-b-2">
         <div className="font-semibold text-2xl">Chat Rooms</div>
       </div>
@@ -54,12 +62,14 @@ function DoctorChatRoomList() {
             <input
               type="text"
               placeholder="Search chats"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="py-2 px-2 border-2 border-gray-200 rounded-2xl w-full"
             />
           </div>
           {/* Chat rooms */}
-          {rooms.length > 0 ? (
-            rooms.map((room) => {
+          {filteredRooms.length > 0 ? (
+            filteredRooms.map((room) => {
               // Construct full URL for profile picture if necessary
               const profilePicUrl = room.patient_profile
                 ? room.patient_profile.startsWith('/')
@@ -98,3 +108,4 @@ function DoctorChatRoomList() {
 }
 
 export default DoctorChatRoomList;
+

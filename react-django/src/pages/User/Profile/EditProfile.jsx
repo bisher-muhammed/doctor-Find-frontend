@@ -128,7 +128,7 @@ function EditProfile() {
 
     return (
         <div className="container mx-auto p-6 mt-6">
-            <h1 className="text-3xl font-bold text-center mb-8 text-red-600">Edit Profile</h1>
+            <h1 className="text-3xl py-10 font-bold text-center mb-8 text-red-600">Edit Profile</h1>
             <form onSubmit={handleSubmit} className="max-w-4xl mx-auto bg-white shadow-md rounded-md px-8 pt-6 pb-8 mb-4 border-black border">
                 <div className="mb-4">
                     <label className="block text-black text-sm font-bold mb-2" htmlFor="username">Username</label>

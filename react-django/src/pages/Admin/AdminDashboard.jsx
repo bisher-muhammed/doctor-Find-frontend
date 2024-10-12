@@ -1,85 +1,54 @@
+// src/Components/Admin/AdminDashboard.jsx
+
 import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { FaTachometerAlt, FaUsers, FaCogs, FaSignOutAlt, FaCalendarCheck, FaStethoscope } from "react-icons/fa";
-import { Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, Divider,Card,CardContent,CardActions,Button } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { set_authentication } from "../../Redux/authenticationSlice";
+import AdminSidebar from "../../Components/Admin/AdminSidebar";
+import RevenueChart from "../../Components/Admin/RevenueChart";
+import TotalRevenueDisplay from "../../Components/Admin/TotalRevenueDisplay";
+// import ApexChart from "../../Components/Admin/ApexChart";
 
 function AdminDashboard() {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const authentication_user = useSelector((state) => state.authUser);
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const authentication_user = useSelector((state) => state.authUser);
 
-  const logout = () => {
-    if (authentication_user.isAdmin) {
-      localStorage.clear();
-      dispatch(
-        set_authentication({
-          userid: null,
-          name: null,
-          token: null,
-          isAuthenticated: false,
-          isAdmin: false,
-          isActive: false,
-          isDoctor: false,
-        })
-      );
-      navigate("/admin/login");
-    } else {
-      alert("You are not authorized to log out from this section.");
-    }
-  };
+    const logout = () => {
+        if (authentication_user.isAdmin) {
+            localStorage.clear();
+            dispatch(
+                set_authentication({
+                    userid: null,
+                    name: null,
+                    token: null,
+                    isAuthenticated: false,
+                    isAdmin: false,
+                    isActive: false,
+                    isDoctor: false,
+                })
+            );
+            navigate("/admin/login");
+        } else {
+            alert("You are not authorized to log out from this section.");
+        }
+    };
 
-  return (
-    <div style={{ display: 'flex' }}>
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: 240,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: 240,
-            boxSizing: 'border-box',
-            bgcolor: 'background.default',
-            color: 'text.primary',
-          },
-        }}
-      >
-        <div style={{ padding: 16, backgroundColor: '#333', color: '#fff' }}>
-          <Typography variant="h6" noWrap>
-            Admin Panel
-          </Typography>
+    return (
+        <div style={{ display: 'flex', height: '100vh' }}>
+            {/* Replace the sidebar with the new AdminSidebar component */}
+            <AdminSidebar isAdmin={authentication_user.isAdmin} onLogout={logout} />
+
+            {/* Main Content Area */}
+            <div style={{ flexGrow: 1, padding: 16, backgroundColor: '#f4f6f8' }}>
+                {/* Total Revenue, Doctors, and Patients Boxes */}
+                <TotalRevenueDisplay />
+
+                {/* Chart Section */}
+                <RevenueChart />
+                {/* <ApexChart /> */}
+            </div>
         </div>
-        <Divider />
-        <List>
-          <ListItem button component={NavLink} to="#">
-            <ListItemIcon><FaTachometerAlt /></ListItemIcon>
-            <ListItemText primary="Dashboard" />
-          </ListItem>
-          <ListItem button component={NavLink} to="/admin/users_list">
-            <ListItemIcon><FaUsers /></ListItemIcon>
-            <ListItemText primary="Users" />
-          </ListItem>
-          <ListItem button component={NavLink} to="/admin/doctors_list">
-            <ListItemIcon><FaStethoscope /></ListItemIcon>
-            <ListItemText primary="Doctors" />
-          </ListItem>
-          
-          
-          <ListItem button component={NavLink} to='/admin/document_list'>
-            <ListItemIcon><FaCogs /></ListItemIcon>
-            <ListItemText primary="Document List" />
-          </ListItem>
-          <ListItem button onClick={logout}>
-            <ListItemIcon><FaSignOutAlt /></ListItemIcon>
-            <ListItemText primary="Logout" />
-          </ListItem>
-        </List>
-      </Drawer>
-      
-    </div>
-  );
+    );
 }
 
 export default AdminDashboard;
-

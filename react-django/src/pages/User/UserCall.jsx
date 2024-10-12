@@ -18,8 +18,10 @@ const UserCall = () => {
     const [username, setUsername] = useState("Default User");
     const [isInCall, setIsInCall] = useState(false);
     
-    const zegoInstance = useRef(null); 
 
+    const zegoInstance = useRef(null);
+
+    // Decode the JWT token to retrieve user info
     const decodeToken = () => {
         if (token) {
             try {
@@ -38,10 +40,11 @@ const UserCall = () => {
 
     useEffect(() => {
         const joinMeeting = async () => {
-            // Only attempt to join if not already in a call
-            if (isInCall || !containerRef.current || !user || !username) return;
-    
+            // Only attempt to join if we have all required data
+            if (!containerRef.current || !user || !username) return;
+
             try {
+                // Generate the token for ZegoUIKitPrebuilt
                 const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
                     APP_ID,
                     SERVER_SECRET,
@@ -49,13 +52,12 @@ const UserCall = () => {
                     user,
                     username
                 );
-    
-                // Prevent multiple instances
+
                 if (zegoInstance.current) {
                     console.warn("Already in a call. Ignoring join request.");
-                    return; // Prevent rejoining if already in a call
+                    return;
                 }
-    
+
                 const zc = ZegoUIKitPrebuilt.create(kitToken);
                 await zc.joinRoom({
                     container: containerRef.current,
@@ -63,65 +65,45 @@ const UserCall = () => {
                         mode: ZegoUIKitPrebuilt.OneONoneCall,
                     },
                     showScreenSharingButton: false,
-                    showPreJoinView: false,
-                    turnOnCameraWhenJoining: false,
-                    turnOnMicrophoneWhenJoining: true,
-                    showLeaveRoomConfirmDialog: false,
+                    showPreJoinView: false,  // Disable pre-join view
+                    turnOnCameraWhenJoining: true, // Ensure camera is turned on
+                    turnOnMicrophoneWhenJoining: true, // Ensure microphone is turned on
+                    showLeaveRoomConfirmDialog: false, // Disable leave confirmation dialog
                     onLeaveRoom: () => {
                         console.log('User left the room');
-                        setIsInCall(false); // Update state when leaving the room
-                        navigate(`/chats/${roomId}`); // Navigate after leaving
+                        setIsInCall(false); // Reset call state when leaving
+                        navigate(`/chats/${roomId}`); // Navigate back to chat page
                     },
-                    onUserLeave: () => navigate(`/chats/${roomId}`),
+                    onUserLeave: () => navigate(`/chats/${roomId}`), // If the other user leaves
                 });
-    
-                zegoInstance.current = zc; // Save zego instance
-                setIsInCall(true); // Set in-call state
+
+                zegoInstance.current = zc; // Save instance
+                setIsInCall(true); // Mark the user as in call
             } catch (error) {
                 console.error("Error joining meeting:", error);
             }
         };
-    
-        joinMeeting(); // Call to join meeting
-    
+
+        joinMeeting();
+
         return () => {
-            console.log('Leaving room');
+            // Clean up on component unmount
             if (zegoInstance.current) {
-                zegoInstance.current.leave(); // Leave room on unmount
-                zegoInstance.current = null; // Reset instance on leave
-                setIsInCall(false); // Reset the in-call state
+                zegoInstance.current.destroy(); // Destroy the Zego instance
+                zegoInstance.current = null; // Reset instance
+                setIsInCall(false); // Reset call state
             }
         };
-    }, [roomId, user, username]); // Removed isInCall from the dependency array
+    }, [roomId, user, username]);
 
-    useEffect(() => {
-        const socket = io(SOCKET_URL);
-
-        const handleAudioMessage = (data) => {
-            console.log("Received message:", data);
-            if (data.content === "Calling") {
-                if (!isInCall) {
-                    alert("Incoming call...");
-                }
-            } else if (data.content === "call_declined") {
-                alert("The call was declined.");
-            }
-        };
-
-        socket.on("receive_message", handleAudioMessage);
-
-        return () => {
-            socket.off("receive_message", handleAudioMessage);
-            socket.disconnect();
-        };
-    }, [isInCall]);
+    
 
     return (
         <div style={{ height: '100vh', width: '100vw' }}>
+            {/* Container for video and audio feed */}
             <div ref={containerRef} style={{ height: '100vh', width: '100vw' }} />
         </div>
     );
 };
 
 export default UserCall;
-

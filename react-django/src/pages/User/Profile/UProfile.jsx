@@ -56,7 +56,7 @@ function UProfile() {
     if (error) return <div>{error}</div>; // Show error message
 
     return (
-        <div className="min-h-screen w-full flex flex-col items-center">
+        <div className="min-h-screen w-full flex flex-col items-center mt-10">
             <div className="flex flex-col items-center justify-center w-full px-4 py-8 sm:py-12">
                 <div className="w-full max-w-4xl bg-slate-300 rounded-lg shadow-lg p-6 sm:p-8">
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-center text-gray-800 mb-6 italic">

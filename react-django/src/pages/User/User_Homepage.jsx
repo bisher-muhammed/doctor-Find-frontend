@@ -52,7 +52,7 @@ function User_Homepage() {
       <User_Navbar />
 
       {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-16">
         <div className="bg-white p-6 flex flex-col lg:flex-row items-center justify-between relative">
           {/* Text Content */}
           <div className="lg:w-1/2 w-full mb-6 lg:mb-0">

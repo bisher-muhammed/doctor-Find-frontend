@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { searchItems } from '../../utils/SearchUtils';
 
 function ChatRoomList() {
   const [rooms, setRooms] = useState([]);
+  const [filteredRooms, setFilteredRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const baseURL = 'http://127.0.0.1:8000';
   const token = localStorage.getItem('access');
   const navigate = useNavigate();
@@ -19,6 +22,7 @@ function ChatRoomList() {
           }
         });
         setRooms(response.data);
+        setFilteredRooms(response.data);  // Initialize with all rooms
       } catch (err) {
         setError(err);
       } finally {
@@ -28,6 +32,12 @@ function ChatRoomList() {
 
     fetchRooms();
   }, [token, baseURL]);
+
+  // Apply search functionality on rooms whenever the search term changes
+  useEffect(() => {
+    const result = searchItems(rooms, searchTerm, ['doctor_first_name']);
+    setFilteredRooms(result);
+  }, [searchTerm, rooms]);
 
   if (loading) return <div className="text-center py-4">Loading...</div>;
   if (error) return <div className="text-center py-4 text-red-500">Error: {error.message}</div>;
@@ -54,11 +64,14 @@ function ChatRoomList() {
               type="text"
               placeholder="Search chats"
               className="py-2 px-2 border-2 border-gray-200 rounded-2xl w-full"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}  // Update search term
             />
           </div>
+
           {/* Chat rooms */}
-          {rooms.length > 0 ? (
-            rooms.map((room) => {
+          {filteredRooms.length > 0 ? (
+            filteredRooms.map((room) => {
               // Construct full URL for doctor's profile picture if necessary
               const doctorProfilePic = room.doctor_profile.startsWith('/')
                 ? `${baseURL}${room.doctor_profile}`
@@ -75,7 +88,7 @@ function ChatRoomList() {
                       src={doctorProfilePic || 'path/to/fallback/image.png'}
                       className="object-cover h-12 w-12 rounded-full"
                       alt="Doctor Profile"
-                      onError={(e) => e.target.src = 'path/to/fallback/image.png'} // Fallback image in case of error
+                      onError={(e) => e.target.src = 'path/to/fallback/image.png'}  // Fallback image in case of error
                     />
                   </div>
                   <div className="w-full">

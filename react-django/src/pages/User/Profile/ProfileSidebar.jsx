@@ -58,7 +58,7 @@ function ProfileSidebar() {
         : 'default-image-url';
 
     return (
-        <aside id="profile-sidebar" className="fixed top-0 left-0 mt-12 z-40 w-64 h-screen transition-transform bg-gray-50 dark:bg-black" aria-label="Sidebar">
+        <aside id="profile-sidebar" className="fixed top-0 left-0 mt-20 z-40 w-64 h-screen transition-transform bg-gray-50 dark:bg-black" aria-label="Sidebar">
             <div className="h-full px-4 py-6 overflow-y-auto">
                 <div className="flex flex-col items-center mb-6">
                     <img src={profilePic} className="w-24 h-24 bg-gray-300 rounded-full mb-4" alt="Profile" />

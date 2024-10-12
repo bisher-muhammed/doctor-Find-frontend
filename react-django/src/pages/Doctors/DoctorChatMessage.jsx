@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import RecordRTC from 'recordrtc';
 import { io } from 'socket.io-client';
 import {jwtDecode} from 'jwt-decode';
 import { FaFile, FaMicrophone, FaPaperPlane, FaPlay, FaPause, FaImage, FaVideo } from 'react-icons/fa';
 import UserHeader from '../../Components/Chat/UserHeader';
+import CallModel from "../../Components/Chat/CallModel";
+import Header from '../../Components/Doctors/Header';
 
 
 
@@ -71,11 +73,15 @@ const DoctorChatComponent = () => {
   const [recordedAudios, setRecordedAudios] = useState([]);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
+  const [showModal, setShowModal] = useState(false); // Modal state
+  const [callId, setCallId] = useState(null);
+
   const token = localStorage.getItem('access');
   const baseURL = 'http://127.0.0.1:8000';
   const scrollRef = useRef(null);
   const socket = useRef(null);
   const user = useRef(null);
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (token) {
@@ -212,12 +218,121 @@ const DoctorChatComponent = () => {
   const handleCloseImagePreview = () => setImagePreviewUrl(null);
   const handleCloseVideoPreview = () => setVideoPreviewUrl(null);
 
+
+
+
+
+
+
+  const randomID = (len = 5) => {
+    let result = "";
+    const chars = "12345qwertyuiopasdfgh67890jklmnbvcxzMNBVCZXASDQWERTYHGFUIOLKJP";
+    for (let i = 0; i < len; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  // Handle phone click to initiate a call
+  const handlePhoneClick = () => {
+    const callId = randomID(); // Generate random ID for the call
+    setCallId(callId);
+
+    if (socket && socket.current) {
+      socket.current.emit("call", {
+        callId,
+        sender_id: user.current,
+        room_id: roomId,
+        message: "Calling",
+      });
+      navigate(`/doctor/Doctor_call/${roomId}/${callId}`); // Navigate to the call page
+    } else {
+      console.error('Socket is not connected.');
+    }
+  };
+
+  // Handle accepting the call
+  const handleAcceptCall = () => {
+    if (callId) {
+      socket.current.emit("call", {
+        callId,
+        sender_id: user.current,
+        room_id: roomId,
+        message: "call_accepted",
+      });
+      navigate(`/doctor/Doctor_call/${roomId}/${callId}`);
+    }
+  };
+
+  // Handle declining the call
+  const handleDeclineCall = () => {
+    if (socket && socket.current) {
+      socket.current.emit("call", {
+        message: "call_declined",
+        sender_id: user.current,
+        room_id: roomId,
+      });
+      setShowModal(false);
+    }
+  };
+
+  // Handle incoming call messages from the socket
+  useEffect(() => {
+    if (!roomId || !user.current || !socket || !socket.current) return;
+
+    const handleAudioMessage = (data) => {
+      console.log('Received audio message:', data);
+
+      if (data.content === "Calling") {
+        setCallId(data.callId);
+        setShowModal(true); // Show incoming call modal
+      }
+
+      if (data.content === "call_declined") {
+        alert("The call was declined.");
+        setShowModal(false);
+      }
+    };
+
+    socket.current.on("receive_message", handleAudioMessage);
+
+    return () => {
+      if (socket.current) {
+        socket.current.off("receive_message", handleAudioMessage); // Cleanup on component unmount
+      }
+    };
+  }, [roomId, socket]);
+
+
+
+
+
+
+
+
+
+
+
   return (
     <div className="w-full h-screen relative flex flex-col mt-4">
       
-      <UserHeader/>
+      
+    
+      
+      
+      {socket.current && socket.current.connected ? (
+      <UserHeader handlePhoneClick={handlePhoneClick} />
+    ) : (
+      <p>Connecting...</p>
+    )}
+    {/* Rest of the chat UI */}
+  
     <h2 className="text-xl font-semibold"></h2>
       <div className="flex-1 overflow-x-auto p-4 bg-white">
+      <Header/>
+      
+
+        
         {messages.map((message, index) => (
           <div
             key={index}
@@ -260,6 +375,14 @@ const DoctorChatComponent = () => {
         ))}
         <div ref={scrollRef} />
       </div>
+
+      {showModal && (
+        <CallModel
+          callId={callId}
+          handleAcceptCall={handleAcceptCall}
+          handleDeclineCall={handleDeclineCall}
+        />
+      )}
 
       <div className="bg-zinc-100 p-4">
         {imagePreviewUrl && <ImagePreviewModal imageUrl={imagePreviewUrl} onClose={handleCloseImagePreview} />}
