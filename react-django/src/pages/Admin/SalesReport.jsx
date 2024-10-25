@@ -2,27 +2,33 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import AdminSidebar from "../../Components/Admin/AdminSidebar";  // Sidebar component
+import AdminSidebar from "../../Components/Admin/AdminSidebar";
+import '@react-pdf-viewer/core/lib/styles/index.css';
+import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
 const SalesReport = () => {
     const [bookings, setBookings] = useState([]);
+    const [transactions, setTransactions] = useState([]);
+    const [walletTransactions, setWalletTransactions] = useState([]);
     const [totalAmount, setTotalAmount] = useState(0);
     const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(0);
+    const [itemsPerPage] = useState(8); // Number of records per page
 
     const baseURL = 'http://127.0.0.1:8000';
     const navigate = useNavigate();
     const token = localStorage.getItem('access');
 
-    // Redirect to login if token is missing
     useEffect(() => {
         if (!token) {
             navigate('/login');
         }
     }, [token, navigate]);
 
-    // Fetch sales report
     const fetchSalesReport = async (date) => {
         setLoading(true);
         try {
@@ -33,7 +39,9 @@ const SalesReport = () => {
                 },
             });
 
-            setBookings(response.data.bookings);
+            setBookings(response.data.bookings || []);
+            setTransactions(response.data.transactions || []);
+            setWalletTransactions(response.data.wallet_transactions || []);
             setTotalAmount(response.data.total_amount || 0);
             setLoading(false);
         } catch (err) {
@@ -47,25 +55,46 @@ const SalesReport = () => {
         }
     };
 
-    // Fetch sales report on date change or initial load
     useEffect(() => {
         if (token) {
             fetchSalesReport(selectedDate);
         }
     }, [selectedDate, token]);
 
-    // Handle date change
     const handleDateChange = (e) => {
         setSelectedDate(e.target.value);
+        setCurrentPage(0); // Reset to the first page when date changes
     };
+
+    const handlePrint = () => {
+        window.print();
+    };
+
+    // Combine transactions and wallet transactions into one table
+    const combinedTransactions = [
+        ...transactions.map(transaction => ({
+            ...transaction,
+            method: 'Razorpay',  // or any other identifier for regular transactions
+        })),
+        ...walletTransactions.map(walletTransaction => ({
+            id: walletTransaction.id,
+            amount: walletTransaction.amount,
+            status: walletTransaction.status,
+            method: 'Wallet',
+            username: walletTransaction.username
+        }))
+    ];
+
+    // Pagination logic
+    const totalPages = Math.ceil(combinedTransactions.length / itemsPerPage); // Total number of pages
+    const displayedTransactions = combinedTransactions.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage); // Current page transactions
 
     return (
         <div className="flex flex-row min-h-screen bg-gray-100 text-gray-800">
-            <AdminSidebar />  {/* Sidebar */}
+            <AdminSidebar />
             <main className="flex-grow p-6">
                 <h2 className="text-3xl font-semibold text-gray-700 mb-6">Sales Report</h2>
 
-                {/* Date picker */}
                 <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">Select Date:</label>
                     <input
@@ -77,67 +106,87 @@ const SalesReport = () => {
                     />
                 </div>
 
-                {/* Loading spinner */}
                 {loading && <p className="text-blue-500">Loading...</p>}
-
-                {/* Error display */}
                 {error && <p className="text-red-500">{error}</p>}
 
-                {/* Total amount */}
-                {!loading && bookings.length > 0 && (
-                    <div className="p-4 mb-4">
-                        <h3 className="text-lg font-semibold text-gray-700">Total Amount: ₹{totalAmount}</h3>
-                    </div>
-                )}
+                {!loading && (
+                    <>
+                        <div className="p-4 mb-4">
+                            <h3 className="text-lg font-semibold text-gray-700">Total Amount: ₹{totalAmount}</h3>
+                            <button
+                                onClick={handlePrint}
+                                className="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow"
+                            >
+                                Print/Save PDF
+                            </button>
+                        </div>
 
-                {/* Table for medium and large screens */}
-                {!loading && bookings.length > 0 && (
-                    <div className="bg-white shadow-md rounded-lg overflow-x-auto hidden md:block">
-                        <table className="min-w-full table-auto">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Doctor</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slot Time</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transaction Type</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {bookings.map((booking) => (
-                                    <tr key={booking.id} className="hover:bg-gray-100">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{booking?.user?.username || 'N/A'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking?.doctor?.first_name || 'N/A'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {booking?.slots?.start_time ? new Date(booking.slots.start_time).toLocaleString() : 'N/A'} - 
-                                            {booking?.slots?.end_time ? new Date(booking.slots.end_time).toLocaleString() : 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{booking?.slots?.amount || 'N/A'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.transaction_type || 'N/A'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                        {/* Display Combined Transactions */}
+                        <div className="mt-6">
+                            <h3 className="text-lg font-semibold text-gray-700 mb-4">Transactions</h3>
 
-                {/* Responsive card layout for small screens */}
-                {!loading && bookings.length > 0 && (
-                    <div className="md:hidden">
-                        {bookings.map((booking) => (
-                            <div key={booking.id} className="border-b border-gray-300 p-4 flex flex-col hover:bg-gray-50">
-                                <div className="font-semibold">User: {booking?.user?.username || 'N/A'}</div>
-                                <div>Doctor: {booking?.doctor?.first_name || 'N/A'}</div>
-                                <div>Slot Time: {booking?.slots?.start_time ? new Date(booking.slots.start_time).toLocaleString() : 'N/A'} - {booking?.slots?.end_time ? new Date(booking.slots.end_time).toLocaleString() : 'N/A'}</div>
-                                <div>Amount: ₹{booking?.slots?.amount || 'N/A'}</div>
-                                <div>Transaction Type: {booking.transaction_type || 'N/A'}</div>
+                            {/* Table for larger screens */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="min-w-full table-auto border-collapse border">
+                                    <thead>
+                                        <tr>
+                                            <th className="border px-4 py-2">Transaction ID</th>
+                                            <th className="border px-4 py-2">Amount</th>
+                                            <th className="border px-4 py-2">Status</th>
+                                            <th className="border px-4 py-2">Method</th>
+                                            <th className="border px-4 py-2">User Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {displayedTransactions.map((transaction, index) => (
+                                            <tr key={index}>
+                                                <td className="border px-4 py-2">{transaction.id}</td>
+                                                <td className="border px-4 py-2">₹{transaction.amount}</td>
+                                                <td className="border px-4 py-2">{transaction.status}</td>
+                                                <td className="border px-4 py-2">{transaction.method}</td>
+                                                <td className="border px-4 py-2">{transaction.username || 'N/A'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
-                        ))}
-                    </div>
-                )}
 
-                {/* No bookings found */}
-                {!loading && bookings.length === 0 && <p className="text-gray-500">No bookings found for the selected date.</p>}
+                            {/* List format for smaller screens */}
+                            <div className="md:hidden">
+                                {displayedTransactions.map((transaction, index) => (
+                                    <div key={index} className="border p-4 mb-4 rounded-md shadow-sm bg-white">
+                                        <p><strong>Transaction ID:</strong> {transaction.id}</p>
+                                        <p><strong>Amount:</strong> ₹{transaction.amount}</p>
+                                        <p><strong>Status:</strong> {transaction.status}</p>
+                                        <p><strong>Method:</strong> {transaction.method}</p>
+                                        <p><strong>User Name:</strong> {transaction.username || 'N/A'}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Pagination Controls */}
+                            <div className="flex justify-between mt-4">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
+                                    disabled={currentPage === 0}
+                                    className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+                                >
+                                    Previous
+                                </button>
+                                <span>
+                                    Page {currentPage + 1} of {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
+                                    disabled={currentPage >= totalPages - 1}
+                                    className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
             </main>
         </div>
     );

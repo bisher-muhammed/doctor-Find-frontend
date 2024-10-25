@@ -1,8 +1,8 @@
 import axios from 'axios';
 import React, { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
-import {jwtDecode} from 'jwt-decode'; // Import jwt-decode
-import moment from 'moment'; // Import moment
+import { jwtDecode } from 'jwt-decode'; // Import jwt-decode
+import moment from 'moment-timezone'; // Import moment-timezone for timezone handling
 import { Button, List, ListItem, ListItemText, Typography, Divider, CircularProgress } from '@mui/material';
 
 function DoctorNotification() {
@@ -91,8 +91,8 @@ function DoctorNotification() {
                 }
             });
             // Update local notifications state
-            setNotifications(prevNotifications => 
-                prevNotifications.map(notification => 
+            setNotifications(prevNotifications =>
+                prevNotifications.map(notification =>
                     notification.id === notificationId ? { ...notification, is_read: true } : notification
                 )
             );
@@ -123,9 +123,11 @@ function DoctorNotification() {
             <Typography variant="h5" gutterBottom>
                 Doctor Notifications
             </Typography>
+
             <Button variant="contained" color="secondary" onClick={clearNotifications} style={{ marginBottom: '20px' }}>
                 Clear All Notifications
             </Button>
+
             <List>
                 {notifications.length > 0 ? (
                     notifications.map((notification) => (
@@ -137,11 +139,14 @@ function DoctorNotification() {
                                         <>
                                             {notification.slot_start && notification.slot_end && (
                                                 <span>
-                                                    <strong>Slot:</strong> {moment(notification.slot_start).format(' h:mm A')} - {moment(notification.slot_end).format('h:mm A')}
+                                                    <strong>Slot:</strong> 
+                                                    {`${moment(notification.slot_start).tz('Asia/Kolkata').format('h:mm A')} - ${moment(notification.slot_end).tz('Asia/Kolkata').format('h:mm A')}`}
                                                 </span>
                                             )}
                                             <br />
-                                            <strong>Date:</strong> {moment(notification.created_at).format('MM/DD/YYYY, h:mm A')}
+                                            <strong>Date:</strong> {moment(notification.created_at).tz('Asia/Kolkata').format('YYYY-MM-DD')}
+                                            <br />
+                                            <strong>Amount:</strong> ₹{notification.amount || '200.00'} {/* Assuming you have an amount field */}
                                             <br />
                                             <strong>Status:</strong> {notification.is_read ? "Read" : "Unread"}
                                         </>

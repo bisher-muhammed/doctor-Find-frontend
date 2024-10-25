@@ -8,6 +8,7 @@ import { io } from 'socket.io-client';
 import {jwtDecode} from 'jwt-decode';
 import User_Navbar from '../../Components/Users/User_Navbar';
 import CallModel from '../../Components/Chat/CallModel';
+import { current } from '@reduxjs/toolkit';
 
 
 // Modal components
@@ -93,6 +94,9 @@ const ChatMessage = () => {
     }
   }, [token]);
 
+  console.log(user.current)
+
+
   useEffect(() => {
     if (!roomId || !user.current) return;
 
@@ -129,6 +133,7 @@ const ChatMessage = () => {
       } catch (error) {
         console.error('Error fetching messages:', error);
       }
+      console.log(user.current)
     };
 
     fetchMessages();
@@ -218,7 +223,7 @@ const ChatMessage = () => {
         image: response.data.image||null,
         video: response.data.video||null,
         voice_message: response.data.voice_message || null, // Use the voice message URL from the response
-        sender_id: user.current,
+        sender: user.current,
       });
     } catch (error) {
       console.error('Error sending message:', error.response ? error.response.data : error.message);
@@ -253,7 +258,7 @@ const ChatMessage = () => {
     if (socket && socket.current) {
       socket.current.emit("call", {
         callId,
-        sender_id: user.current,
+        sender: user.current,
         room_id: roomId,
         message: "Calling",
       });
@@ -268,7 +273,7 @@ const ChatMessage = () => {
     if (callId && socket && socket.current) {
       socket.current.emit("call", {
         callId,
-        sender_id: user.current,
+        sender: user.current,
         room_id: roomId,
         message: "call_accepted",
       });
@@ -281,7 +286,7 @@ const ChatMessage = () => {
     if (socket && socket.current) {
       socket.current.emit("call", {
         content: "call_declined",
-        sender_id: user.current,
+        sender: user.current,
         room_id: roomId,
       });
       setShowModal(false);

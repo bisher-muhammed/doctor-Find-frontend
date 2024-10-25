@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';  // Fix the import here if needed, jwt-decode should not be destructured like this
+import { jwtDecode } from 'jwt-decode';  
 import { useDispatch, useSelector } from 'react-redux';
 import { set_authentication } from '../../Redux/authenticationSlice';
 import { toast } from 'react-toastify';
@@ -25,7 +25,6 @@ function DoctorLogin() {
 
   useEffect(() => {
     if (authentication_user.isAuthenticated && authentication_user.isDoctor) {
-      console.log('User is already authenticated. Redirecting...');
       navigate('/doctor/home');
     }
   }, [authentication_user.isAuthenticated, authentication_user.isDoctor, navigate]);
@@ -64,7 +63,6 @@ function DoctorLogin() {
       
       if (res.status === 200) {
         toast.success('Logged in successfully!');
-        console.log('Login successful', res.data);
 
         localStorage.setItem('access', res.data.access_token);
         localStorage.setItem('refresh', res.data.refresh_token);
@@ -94,47 +92,46 @@ function DoctorLogin() {
         setFormError('Invalid email or password');
       } else {
         toast.error('An error occurred. Please try again later.');
-        console.error(error);
       }
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md">
-        <CardBody>
-          <Typography variant="h4" color="blue-gray" className="text-center mb-6">
+    <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-teal-100 to-gray-50">
+      <Card className="w-full max-w-lg shadow-xl rounded-lg overflow-hidden">
+        <CardBody className="p-8">
+          <Typography variant="h3" color="blue-gray" className="text-center font-semibold mb-6">
             Doctor Login
           </Typography>
           <form onSubmit={handleLoginSubmit}>
-            <div className="mb-4">
+            <div className="mb-5">
               <Input
                 label="Email"
                 type="email"
                 name="email"
                 autoComplete="email"
                 error={!!emailError}
-                color={emailError ? 'red' : 'blue'}
-                className="w-full"
+                color={emailError ? 'red' : 'teal'}
+                className="w-full rounded-lg border-gray-300 focus:border-teal-500 focus:ring-teal-500"
               />
               {emailError && (
-                <Typography variant="small" color="red" className="mt-1">
+                <Typography variant="small" color="red" className="mt-2">
                   {emailError}
                 </Typography>
               )}
             </div>
-            <div className="mb-4">
+            <div className="mb-5">
               <Input
                 label="Password"
                 type="password"
                 name="password"
                 autoComplete="current-password"
                 error={!!passwordError}
-                color={passwordError ? 'red' : 'blue'}
-                className="w-full"
+                color={passwordError ? 'red' : 'teal'}
+                className="w-full rounded-lg border-gray-300 focus:border-teal-500 focus:ring-teal-500"
               />
               {passwordError && (
-                <Typography variant="small" color="red" className="mt-1">
+                <Typography variant="small" color="red" className="mt-2">
                   {passwordError}
                 </Typography>
               )}
@@ -147,14 +144,21 @@ function DoctorLogin() {
             <Button
               type="submit"
               fullWidth
-              className="bg-teal-500 text-white hover:bg-teal-600"
+              className="bg-teal-500 text-white font-semibold hover:bg-teal-600 py-3 rounded-lg"
             >
               Login
             </Button>
           </form>
-          <div>
-            <Link to="/doctor/fpassword/"><span >Forgot password</span></Link><br />
-            <span>Don't have an account?</span> <Link to="/doctor/register/"><span>| Sign up</span></Link>
+          <div className="mt-6 text-center">
+            <Link to="/doctor/fpassword" className="text-teal-500 hover:underline">
+              Forgot password?
+            </Link>
+            <div className="mt-2">
+              <span className="text-gray-500">Don't have an account?</span>{' '}
+              <Link to="/doctor/register" className="text-teal-500 hover:underline">
+                Sign up
+              </Link>
+            </div>
           </div>
         </CardBody>
       </Card>

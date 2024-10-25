@@ -42,8 +42,8 @@ const Header = () => {
       <li><Link to='/doctor/home' className="text-black p-2 font-medium">Home</Link></li>
       <li><Link to="/doctors" className="text-black p-2 font-medium">Doctors</Link></li>
       <li><Link to="/doctor/Slots/Slots" className="text-black p-2 font-medium">Slots</Link></li>
-      <li><Link to='/doctor/chat_rooms' className="text-black p-2 font-medium">Rooms</Link></li>
-      <li><Link to="/doctor/notification" className="text-black p-2 font-medium">Contacts</Link></li>
+      
+      <li><Link to="/doctor/chat_rooms" className="text-black p-2 font-medium">Contacts</Link></li>
     </ul>
   );
 

@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { set_authentication } from "../../Redux/authenticationSlice";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode} from "jwt-decode"; // Corrected the import
 import axios from "axios";
 import { Input, Button } from "@material-tailwind/react";
+import Aimage from '../../assets/Aimage.jpg';
 
 function AdminLogin() {
     const navigate = useNavigate();
@@ -37,8 +38,7 @@ function AdminLogin() {
             const res = await axios.post(baseURL + '/api/admin/admin/login/', formData);
             if (res.status === 200) {
                 localStorage.setItem('access', res.data.access_token);
-                localStorage.setItem('refresh', res.data.refresh_token); // Corrected the typo 'refresh_roken' to 'refresh_token'
-                console.log('response is given by', res.status);
+                localStorage.setItem('refresh', res.data.refresh_token);
 
                 dispatch(
                     set_authentication({
@@ -54,42 +54,53 @@ function AdminLogin() {
             console.error('Error during login', error);
             setLoginError('Invalid Credentials');
         }
-    }
+    };
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-                <h2 className="text-2xl font-bold text-center">Admin Login</h2>
-                <form className="space-y-6" onSubmit={handleLoginSubmit}>
-                    <div>
-                        <Input
-                            type="email"
-                            label="Email"
-                            name="email"
-                            error={emailError}
-                        />
-                        {emailError && <p className="text-red-500">{emailError}</p>}
-                    </div>
-                    <div>
-                        <Input
-                            type="password"
-                            label="Password"
-                            name="password"
-                            error={passwordError}
-                        />
-                        {passwordError && <p className="text-red-500">{passwordError}</p>}
-                    </div>
-                    <div>
-                        <Button color="blue" ripple="light" fullWidth type="submit">
-                            Login
-                        </Button>
-                        {loginError && <p className="text-red-500">{loginError}</p>}
-                    </div>
-                </form>
+            <div className="flex flex-col-reverse md:flex-row bg-white shadow-lg rounded-lg overflow-hidden w-full max-w-4xl">
+                {/* Left Side - Form */}
+                <div className="w-full md:w-1/2 p-8 space-y-6">
+                    <h2 className="text-3xl font-bold text-center text-gray-700">Admin Login</h2>
+                    <form className="space-y-6" onSubmit={handleLoginSubmit}>
+                        <div>
+                            <Input
+                                type="email"
+                                label="Email"
+                                name="email"
+                                error={emailError}
+                            />
+                            {emailError && <p className="text-red-500">{emailError}</p>}
+                        </div>
+                        <div>
+                            <Input
+                                type="password"
+                                label="Password"
+                                name="password"
+                                error={passwordError}
+                            />
+                            {passwordError && <p className="text-red-500">{passwordError}</p>}
+                        </div>
+                        <div>
+                            <Button color="gray" ripple="dark" fullWidth type="submit">
+                                Login
+                            </Button>
+                            {loginError && <p className="text-red-500">{loginError}</p>}
+                        </div>
+                    </form>
+                </div>
+
+                {/* Right Side - Image */}
+                <div className="hidden md:block md:w-1/2">
+                    <img
+                        src={Aimage}
+                        alt="Admin Login"
+                        className="w-full h-full object-cover"
+                    />
+                </div>
             </div>
         </div>
     );
 }
 
 export default AdminLogin;
-

@@ -33,13 +33,12 @@ function EditDoctorProfile() {
         first_name: "",
         last_name: "",
         email: "",
-        gender: "",
+        gender: "", // Gender field added here
         specification: "",
         phone: "",
         experience: "",
         bio: "",
         profile_pic: null,
-       
     });
 
     useEffect(() => {
@@ -54,20 +53,23 @@ function EditDoctorProfile() {
                 });
                 const doctorData = response.data;
 
+                // Log the received data to ensure the structure is as expected
+                console.log("Doctor Data:", doctorData);
+
                 setFormData({
-                    username: doctorData.user?.username || "",
+                    username: doctorData.username || "",
                     first_name: doctorData.first_name || "",
                     last_name: doctorData.last_name || "",
-                    specification: doctorData.specialization || "",
+                    specification: doctorData.specification || "",
                     experience: doctorData.experience || "",
                     bio: doctorData.bio || "",
-                    gender: doctorData.gender || "",
-                    email: doctorData.user?.email || "",
-                    phone: doctorData.user?.phone_number || "",
-
+                    gender: doctorData.gender || "", // Ensure this is set correctly
+                    email: doctorData.email || "",
+                    phone: doctorData.phone_number || "",
                     profile_pic: doctorData.profile_pic || null
                 });
 
+                // Handle the profile picture preview
                 if (doctorData.profile_pic) {
                     setPreviewImage(`${baseURL}${doctorData.profile_pic}`);
                 }
@@ -108,7 +110,6 @@ function EditDoctorProfile() {
         if (!formData.first_name) formErrors.first_name = 'First name is required';
         if (!formData.last_name) formErrors.last_name = 'Last name is required';
         if (!formData.specification) formErrors.specification = 'Specialization is required';
-       
 
         setErrors(formErrors);
         return Object.keys(formErrors).length === 0;
@@ -119,10 +120,17 @@ function EditDoctorProfile() {
         if (!validateForm()) return;
 
         const formDataToSend = new FormData();
+
+        // Append all fields except 'profile_pic' first
         for (let key in formData) {
-            if (formData[key] !== null) {
+            if (key !== 'profile_pic' && formData[key] !== null) {
                 formDataToSend.append(key, formData[key]);
             }
+        }
+
+        // Append profile_pic only if a new image is selected (it's a File)
+        if (formData.profile_pic instanceof File) {
+            formDataToSend.append('profile_pic', formData.profile_pic);
         }
 
         try {
@@ -141,6 +149,7 @@ function EditDoctorProfile() {
             // Handle error response and show appropriate error messages if needed
         }
     };
+    console.log(formData)
 
     if (loading) {
         return <div>Loading...</div>;
@@ -186,29 +195,12 @@ function EditDoctorProfile() {
                     </Grid>
 
                     <Grid item xs={12}>
-                        <FormControl fullWidth variant="outlined">
-                            <InputLabel>Gender</InputLabel>
-                            <Select
-                                label="Gender"
-                                name="gender"
-                                value={formData.gender}
-                                onChange={handleChange}
-                            >
-                                <MenuItem value=""><em>Select Gender</em></MenuItem>
-                                <MenuItem value="Male">Male</MenuItem>
-                                <MenuItem value="Female">Female</MenuItem>
-                                <MenuItem value="Other">Other</MenuItem>
-                            </Select>
-                        </FormControl>
-                        {errors.gender && <Typography color="error">{errors.gender}</Typography>}
-                    </Grid>
-
-                    <Grid item xs={12}>
                         <TextField
                             variant="outlined"
                             fullWidth
                             label="Phone Number"
                             name="phone"
+                            disabled
                             value={formData.phone}
                             onChange={handleChange}
                         />
@@ -275,8 +267,7 @@ function EditDoctorProfile() {
                         />
                     </Grid>
 
-                    
-
+                   
                     <Grid item xs={12}>
                         <FormControl fullWidth>
                             <Box display="flex" alignItems="center">
@@ -303,12 +294,7 @@ function EditDoctorProfile() {
                     </Grid>
 
                     <Grid item xs={12}>
-                        <Button
-                            type="submit"
-                            fullWidth
-                            variant="contained"
-                            color="primary"
-                        >
+                        <Button variant="contained" color="primary" type="submit" fullWidth>
                             Save Changes
                         </Button>
                     </Grid>

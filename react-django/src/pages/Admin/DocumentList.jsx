@@ -24,6 +24,8 @@ const DocumentList = () => {
     const [selectedDocument, setSelectedDocument] = useState(null);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [verifyLoading, setVerifyLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(0); // Current page
+    const [itemsPerPage] = useState(5); // Items per page
 
     const navigate = useNavigate();
     const token = localStorage.getItem('access');
@@ -106,12 +108,17 @@ const DocumentList = () => {
     };
 
     const getFileType = (fileUrl) => {
+        if (!fileUrl) {
+            console.error('Invalid file URL:', fileUrl);
+            return 'unknown';
+        }
+
         const fileExtension = fileUrl.split('.').pop().toLowerCase();
         return fileExtension === 'pdf'
             ? 'application/pdf'
             : ['jpg', 'jpeg', 'png'].includes(fileExtension)
-                ? 'image'
-                : 'unknown';
+            ? 'image'
+            : 'unknown';
     };
 
     const renderPreview = (docUrl, docType) => {
@@ -126,7 +133,7 @@ const DocumentList = () => {
                 <img
                     src={fullUrl}
                     alt="Preview"
-                    style={{ maxWidth: '100%', height: 'auto' }}
+                    style={{ Width: '50%', height: '50%' }}
                     onError={(e) => {
                         console.error('Error loading image:', e.target.src);
                         e.target.src = ''; // Clear the image source to prevent broken image icon
@@ -157,6 +164,9 @@ const DocumentList = () => {
         return groups;
     }, {}), [documents]);
 
+    const totalPages = Math.ceil(Object.keys(groupedDocuments).length / itemsPerPage); // Total number of pages
+    const currentItems = Object.values(groupedDocuments).slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage); // Current items based on page
+
     return (
         <Box sx={{ display: 'flex', padding: 2 }}>
             <AdminSidebar />
@@ -184,7 +194,7 @@ const DocumentList = () => {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {Object.values(groupedDocuments).map(({ doctor_id, doctor_username, specification, documents }) => (
+                                    {currentItems.map(({ doctor_id, doctor_username, specification, documents }) => (
                                         <Fragment key={doctor_id}>
                                             <TableRow>
                                                 <TableCell>{doctor_id}</TableCell>
@@ -253,60 +263,31 @@ const DocumentList = () => {
                             </Table>
                         </TableContainer>
 
-                        {/* For Small Screens: List Format */}
-                        <List sx={{ display: { xs: 'block', md: 'none' } }}>
-                            {Object.values(groupedDocuments).map(({ doctor_id, doctor_username, specification, documents }) => (
-                                <Box key={doctor_id} sx={{ border: '1px solid #ccc', borderRadius: '4px', marginBottom: '8px', padding: '8px' }}>
-                                    <ListItem>
-                                        <ListItemText
-                                            primary={`${doctor_username} (${specification})`}
-                                            secondary={`Status: ${documents.every(doc => doc.is_verified) ? 'Verified' : 'Not Verified'}`}
-                                        />
-                                        <ListItemSecondaryAction>
-                                            <IconButton
-                                                onClick={() => setOpenDoctor(openDoctor === doctor_id ? null : doctor_id)}
-                                                edge="end"
-                                                aria-label={`Toggle documents for doctor ${doctor_username}`}
-                                            >
-                                                {openDoctor === doctor_id ? <ExpandLess /> : <ExpandMore />}
-                                            </IconButton>
-                                            <Button
-                                                variant="contained"
-                                                color="primary"
-                                                onClick={() => handleVerify(doctor_id)}
-                                                disabled={verifyLoading || documents.every(doc => doc.is_verified)}
-                                                aria-label={`Verify documents for doctor ${doctor_username}`}
-                                            >
-                                                {verifyLoading ? <CircularProgress size={24} /> : 'Verify'}
-                                            </Button>
-                                        </ListItemSecondaryAction>
-                                    </ListItem>
-                                    <Collapse in={openDoctor === doctor_id} timeout="auto" unmountOnExit>
-                                        <List component="div" disablePadding>
-                                            {documents.map(doc => (
-                                                <ListItem key={doc.id}>
-                                                    <ListItemText primary={`Document ID: ${doc.id} - Type: ${getFileType(doc.file)}`} />
-                                                    <ListItemSecondaryAction>
-                                                        <IconButton onClick={() => handleOpen(doc.file)}>
-                                                            <Preview />
-                                                        </IconButton>
-                                                    </ListItemSecondaryAction>
-                                                </ListItem>
-                                            ))}
-                                        </List>
-                                    </Collapse>
-                                </Box>
-                            ))}
-                        </List>
+                        {/* Pagination */}
+                        <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
+                            <Button
+                                variant="outlined"
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
+                                disabled={currentPage === 0}
+                            >
+                                Previous
+                            </Button>
+                            <Typography variant="body1" sx={{ margin: '0 16px' }}>
+                                Page {currentPage + 1} of {totalPages}
+                            </Typography>
+                            <Button
+                                variant="outlined"
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
+                                disabled={currentPage === totalPages - 1}
+                            >
+                                Next
+                            </Button>
+                        </Box>
 
                         {/* Modal for Document Preview */}
                         <Modal open={previewOpen} onClose={handleClose}>
-                            <Box sx={{ padding: 2, backgroundColor: 'white', borderRadius: '4px', margin: 'auto', top: '10%', maxWidth: '80%', overflowY: 'auto' }}>
-                                <Typography variant="h6" gutterBottom>Document Preview</Typography>
-                                {selectedDocument && renderPreview(selectedDocument.file, getFileType(selectedDocument.file))}
-                                <Button onClick={handleClose} color="primary" variant="contained" sx={{ marginTop: 2 }}>
-                                    Close
-                                </Button>
+                            <Box sx={{ width: '50%', margin: 'auto', marginTop: '5%', backgroundColor: 'black', padding: 2 }}>
+                                {selectedDocument && renderPreview(selectedDocument, getFileType(selectedDocument))}
                             </Box>
                         </Modal>
                     </>

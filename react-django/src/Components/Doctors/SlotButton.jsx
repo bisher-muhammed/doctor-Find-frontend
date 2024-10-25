@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format, isValid, isAfter, isBefore, differenceInMinutes, isToday } from 'date-fns';
+import 'react-toastify/dist/ReactToastify.css';
 
 function SlotButton() {
     const navigate = useNavigate();
@@ -134,7 +135,8 @@ function SlotButton() {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 max-w-lg mx-auto p-6 bg-slate-50 shadow-md rounded-lg mt-10">
+            <h2 className="text-center text-xl font-semibold mb-4">Create Slots</h2>
             <div className="space-y-4 border p-4 rounded-lg shadow-md">
                 <div>
                     <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">Start Date</label>
@@ -206,16 +208,21 @@ function SlotButton() {
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                     />
                 </div>
+            </div>
+            <div className="flex justify-center">
                 <button
+                    type="button"
                     onClick={handleGenerateSlot}
-                    className="mt-4 w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700"
                     disabled={loading}
+                    className="px-4 py-2 bg-teal-500 text-white rounded-md shadow-sm hover:bg-teal-700 focus:outline-none disabled:opacity-50"
                 >
-                    {loading ? 'Creating...' : 'Create Slots'}
+                    {loading ? 'Generating...' : 'Create Slot'}
                 </button>
             </div>
+            <ToastContainer />
         </div>
     );
 }
 
 export default SlotButton;
+

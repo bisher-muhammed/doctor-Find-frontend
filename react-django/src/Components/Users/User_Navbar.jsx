@@ -75,7 +75,7 @@ function User_Navbar() {
                                 <Link to="/" className="hover:text-gray-600">Home</Link>
                                 <Link to="/doctors_list" className="hover:text-gray-600">Doctor</Link>
                                 <Link to="/about" className="hover:text-gray-600">About</Link>
-                                <Link to="/contact" className="hover:text-gray-600">Contact</Link>
+                                {/* <Link to="/contact" className="hover:text-gray-600">Contact</Link> */}
                             </div>
 
                             {/* Search Bar */}
@@ -127,7 +127,7 @@ function User_Navbar() {
                                 <Link to="/" className="hover:text-gray-600">Home</Link>
                                 <Link to="/doctors_list" className="hover:text-gray-600">Doctor</Link>
                                 <Link to="/about" className="hover:text-gray-600">About</Link>
-                                <Link to="/contact" className="hover:text-gray-600">Contact</Link>
+                                {/* <Link to="/contact" className="hover:text-gray-600">Contact</Link> */}
                             </div>
                         </div>
                     )}
@@ -148,7 +148,7 @@ function User_Navbar() {
                                 <Link to="/" className="hover:text-gray-600">Home</Link>
                                 <Link to="/doctors_list" className="hover:text-gray-600">Doctor</Link>
                                 <Link to="/about" className="hover:text-gray-600">About</Link>
-                                <Link to="/contact" className="hover:text-gray-600">Contact</Link>
+                                {/* <Link to="/contact" className="hover:text-gray-600">Contact</Link> */}
                                 <li><button onClick={logout} className="hover:text-gray-600">Logout</button></li>
                             </ul>
                         </div>

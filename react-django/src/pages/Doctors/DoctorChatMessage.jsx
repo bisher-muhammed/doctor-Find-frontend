@@ -208,7 +208,7 @@ const DoctorChatComponent = () => {
         image: response.data.image || null,
         video: response.data.video || null,
         voice_message: response.data.voice_message || null,
-        sender_id: user.current,
+        sender: user.current||null,
       });
     } catch (error) {
       console.error('Error sending message:', error.response ? error.response.data : error.message);
@@ -241,7 +241,7 @@ const DoctorChatComponent = () => {
     if (socket && socket.current) {
       socket.current.emit("call", {
         callId,
-        sender_id: user.current,
+        sender: user.current,
         room_id: roomId,
         message: "Calling",
       });
@@ -256,7 +256,7 @@ const DoctorChatComponent = () => {
     if (callId) {
       socket.current.emit("call", {
         callId,
-        sender_id: user.current,
+        sender: user.current,
         room_id: roomId,
         message: "call_accepted",
       });
@@ -269,7 +269,7 @@ const DoctorChatComponent = () => {
     if (socket && socket.current) {
       socket.current.emit("call", {
         message: "call_declined",
-        sender_id: user.current,
+        sender: user.current,
         room_id: roomId,
       });
       setShowModal(false);

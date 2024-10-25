@@ -1,13 +1,31 @@
-// src/Components/Admin/AdminSidebar.jsx
-
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { FaTachometerAlt, FaUsers, FaCogs, FaSignOutAlt, FaStethoscope } from "react-icons/fa";
 import { Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { set_authentication } from "../../Redux/authenticationSlice";
 
-const AdminSidebar = ({ isAdmin, onLogout }) => {
+const AdminSidebar = () => {
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const authentication_user = useSelector((state) => state.authUser);
+
+    const onLogout = () => {
+        localStorage.clear();
+        dispatch(
+            set_authentication({
+                userid: null,
+                name: null,
+                token: null,
+                isAuthenticated: false,
+                isAdmin: false,
+                isActive: false,
+                isDoctor: false,
+            })
+        );
+        navigate('/admin/login');
+    };
+
     return (
         <Drawer
             variant="permanent"
@@ -45,7 +63,7 @@ const AdminSidebar = ({ isAdmin, onLogout }) => {
                     <ListItemIcon><FaStethoscope /></ListItemIcon>
                     <ListItemText primary="Sales" />
                 </ListItem>
-                <ListItem button component={NavLink} to='/admin/document_list'>
+                <ListItem button component={NavLink} to="/admin/document_list">
                     <ListItemIcon><FaCogs /></ListItemIcon>
                     <ListItemText primary="Document List" />
                 </ListItem>
@@ -59,3 +77,4 @@ const AdminSidebar = ({ isAdmin, onLogout }) => {
 };
 
 export default AdminSidebar;
+

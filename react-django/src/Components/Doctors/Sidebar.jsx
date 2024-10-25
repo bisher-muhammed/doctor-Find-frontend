@@ -8,7 +8,6 @@ import SlotButton from './SlotButton';
 const navItems = [
   { to: '/doctor/home', icon: <MdDashboard />, label: 'Dashboard' },
   { to: '/doctor/Bookings/bookings', icon: <FaCalendarAlt />, label: 'Appointments' },
-  { to: '#', icon: <FaUserTie />, label: 'Patient Management' },
   { to: '/doctor/doctor_details', icon: <FaUserMd />, label: 'Profile' },
   { to: '/doctor/edit_profile', icon: <FaUserEdit />, label: 'Edit Profile' },
 ];
@@ -70,7 +69,7 @@ function Sidebar() {
           </ul>
         </nav>
         <div className="mt-10">
-          <SlotButton />
+          
         </div>
       </div>
     </aside>

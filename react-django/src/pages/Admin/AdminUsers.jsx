@@ -1,25 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { FaUserCheck, FaUserSlash } from 'react-icons/fa'; // Importing icons
+import { FaUserCheck, FaUserSlash } from 'react-icons/fa';
 import axios from 'axios';
 import AdminSidebar from "../../Components/Admin/AdminSidebar";
 
 function AdminUsers() {
-  const [users, setUsers] = useState([]); // Users state
-  const [loading, setLoading] = useState(true); // Loading state
-  const [error, setError] = useState(null); // Error state
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1); // Current page state
+  const usersPerPage = 8; // Number of users per page
 
-  const token = localStorage.getItem('access'); // Fetching token from localStorage
-  const baseURL = 'http://127.0.0.1:8000'; // Base URL for API calls
+  const token = localStorage.getItem('access');
+  const baseURL = 'http://127.0.0.1:8000';
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const response = await axios.get(`${baseURL}/api/admin/admin/users_list/`, {
           headers: {
-            'Authorization': `Bearer ${token}`, // Authorization header with JWT token
+            'Authorization': `Bearer ${token}`,
           }
         });
-        setUsers(response.data); // Update users state
+        setUsers(response.data);
         setLoading(false);
       } catch (err) {
         console.error(err);
@@ -36,29 +38,41 @@ function AdminUsers() {
     try {
       const response = await axios.post(`${baseURL}/api/admin/admin/users/${userId}/toggle/`, {}, {
         headers: {
-          'Authorization': `Bearer ${token}` // Authorization header with token
+          'Authorization': `Bearer ${token}`
         }
       });
 
-      // Update the specific user's is_active status in the state
       const updatedUsers = users.map(user =>
         user.id === userId
-          ? { ...user, is_active: response.data.is_active } // Create a new object for the updated user
+          ? { ...user, is_active: response.data.is_active }
           : user
       );
-      setUsers(updatedUsers); // Update state with the new array
+      setUsers(updatedUsers);
     } catch (err) {
       console.error(err);
       setError('Error toggling user status.');
     }
   };
 
+  // Calculate the total number of pages
+  const totalPages = Math.ceil(users.length / usersPerPage);
+
+  // Get the users for the current page
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
+
+  // Handle page change
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
   if (loading) {
-    return <div className="text-center">Loading users...</div>; // Loading state
+    return <div className="text-center">Loading users...</div>;
   }
 
   if (error) {
-    return <div className="text-red-500 text-center">{error}</div>; // Error state
+    return <div className="text-red-500 text-center">{error}</div>;
   }
 
   return (
@@ -67,11 +81,10 @@ function AdminUsers() {
       <div className="p-4 flex-grow">
         <h1 className="text-3xl font-normal mb-4 text-center">List of Users</h1>
         {users.length === 0 ? (
-          <p className="text-center">No users found.</p> // If no users are found
+          <p className="text-center">No users found.</p>
         ) : (
-          <div className="overflow-hidden"> {/* Use overflow-hidden to avoid scroll */}
-            {/* Table for medium and large screens */}
-            <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md hidden md:table"> 
+          <div className="overflow-hidden">
+            <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md hidden md:table">
               <thead className="bg-slate-400">
                 <tr className="text-left text-sm">
                   <th className="py-3 px-4 border-b">Username</th>
@@ -82,7 +95,7 @@ function AdminUsers() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
+                {currentUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="py-2 px-4 border-b">{user.user?.username || 'N/A'}</td>
                     <td className="py-2 px-4 border-b">{user.user?.email || 'N/A'}</td>
@@ -106,9 +119,8 @@ function AdminUsers() {
               </tbody>
             </table>
 
-            {/* Responsive card layout for small screens */}
             <div className="md:hidden">
-              {users.map((user) => (
+              {currentUsers.map((user) => (
                 <div key={user.id} className="border-b border-gray-300 p-4 flex flex-col md:flex-row justify-between items-start md:items-center hover:bg-gray-50">
                   <div className="flex-1">
                     <div className="font-semibold">{user.user?.username || 'N/A'}</div>
@@ -127,6 +139,24 @@ function AdminUsers() {
                   </button>
                 </div>
               ))}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex justify-center mt-4">
+              <nav>
+                <ul className="inline-flex">
+                  {[...Array(totalPages)].map((_, i) => (
+                    <li key={i}>
+                      <button
+                        onClick={() => handlePageChange(i + 1)}
+                        className={`px-4 py-2 mx-1 border ${currentPage === i + 1 ? 'bg-blue-500 text-white' : 'bg-white text-black hover:bg-gray-200'}`}
+                      >
+                        {i + 1}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
             </div>
           </div>
         )}

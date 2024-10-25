@@ -2,6 +2,7 @@ import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import ChatRoomList from './ChatRoomList';
 import ChatMessage from './ChatMessage';
+import PrivateRoutes from '../../Components/PrivateRoutes/PrivateRoutes';
 
 const ChatLayout = () => {
   return (
@@ -16,8 +17,22 @@ const ChatLayout = () => {
       {/* Main Chat Area */}
       <div className="flex-1 ml-[33.33%] flex flex-col">
         <Routes>
-          <Route path="/chatrooms" element={<ChatRoomList />} />
-          <Route path="/chats/:roomId" element={<ChatMessage />} />
+          <Route
+            path="/chatrooms"
+            element={
+              <PrivateRoutes role="user">
+                <ChatRoomList />
+              </PrivateRoutes>
+            }
+          />
+          <Route
+            path="/chats/:roomId"
+            element={
+              <PrivateRoutes role="user">
+                <ChatMessage />
+              </PrivateRoutes>
+            }
+          />
         </Routes>
       </div>
     </div>
@@ -25,4 +40,5 @@ const ChatLayout = () => {
 };
 
 export default ChatLayout;
+
 

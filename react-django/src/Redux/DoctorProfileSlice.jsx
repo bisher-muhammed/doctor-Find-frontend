@@ -18,6 +18,7 @@ const DoctorProfileSlice = createSlice({
         specification: null,
         experience: null,
         id: null // Add id if it's part of the profile data
+        
     },
     reducers: {
         set_doctor_profile_details: (state, action) => {

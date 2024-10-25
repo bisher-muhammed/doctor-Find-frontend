@@ -2,33 +2,34 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Card, CardHeader, CardBody, Typography, Button, Spinner, Radio } from "@material-tailwind/react";
-import { FaUserMd, FaCalendarAlt, FaCreditCard, FaWallet, FaCheck, FaChevronDown, FaChevronUp } from 'react-icons/fa';
-
+import { Card, CardHeader, CardBody, Typography, Button, Spinner } from "@material-tailwind/react";
+import { FaUserMd, FaCalendarAlt, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import moment from 'moment';
 import User_Navbar from '../../Components/Users/User_Navbar';
 import PaymentSuccessMessage from '../../Components/Users/PaymentSuccessMessage';
 
+
 function DoctorDetails() {
-    const authentication_user = useSelector(state => state.authUser); // Get authenticated user
+    const authentication_user = useSelector(state => state.authUser);
     const [doctorDetails, setDoctorDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [selectedSlot, setSelectedSlot] = useState(null); // Track selected slot
-    const [paymentMethod, setPaymentMethod] = useState('razorpay'); // Default payment method
-    const [paymentSuccess, setPaymentSuccess] = useState(false); // Payment success flag
+    const [selectedSlot, setSelectedSlot] = useState(null);
+    const [paymentMethod, setPaymentMethod] = useState(''); // Track selected payment method
+    const [paymentSuccess, setPaymentSuccess] = useState(false);
+    const [showModal, setShowModal] = useState(false);
     const token = localStorage.getItem('access');
     const { doctorId } = useParams();
     const navigate = useNavigate();
-    const baseURL = 'http://127.0.0.1:8000'; // Base URL for API
+    const baseURL = 'http://127.0.0.1:8000';
 
     // Filter states
-    const [showFilter, setShowFilter] = useState(false); // Toggle filter box
-    const [dateFilter, setDateFilter] = useState(''); // Date filter input
-    const [timeFilter, setTimeFilter] = useState(''); // Time filter input
-    const [filteredSlots, setFilteredSlots] = useState([]); // Filtered slots
+    const [showFilter, setShowFilter] = useState(false);
+    const [dateFilter, setDateFilter] = useState('');
+    const [timeFilter, setTimeFilter] = useState('');
+    const [filteredSlots, setFilteredSlots] = useState([]);
 
-    // Format the slot time for display
+    // Format slot time for display
     const formatSlot = (slot) => {
         const start = moment(slot.start_time);
         const end = moment(slot.end_time);
@@ -80,10 +81,11 @@ function DoctorDetails() {
     // Handle payment method selection
     const handlePaymentMethodChange = (method) => {
         setPaymentMethod(method);
+        handleBookNow(method); // Call the bookNow function once the method is selected
     };
 
     // Handle booking confirmation and payment
-    const handleBookNow = async () => {
+    const handleBookNow = async (method) => {
         if (!selectedSlot) {
             alert("Please select a slot before booking.");
             return;
@@ -91,14 +93,14 @@ function DoctorDetails() {
 
         try {
             const response = await axios.post(`${baseURL}/api/users/book-slot/${doctorId}/${selectedSlot.id}/`, {
-                payment_method: paymentMethod,
+                payment_method: method,
             }, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
             const { razorpay_order_id, razorpay_key_id, amount, currency, booking_id } = response.data;
 
-            if (paymentMethod === 'razorpay') {
+            if (method === 'razorpay') {
                 const options = {
                     key: razorpay_key_id,
                     amount,
@@ -114,7 +116,8 @@ function DoctorDetails() {
                                 booking_id
                             }, { headers: { Authorization: `Bearer ${token}` } });
                             setPaymentSuccess(true);
-                            setTimeout(() => { navigate('/appointments'); }, 5000);
+                            setShowModal(true);
+                            setTimeout(() => { navigate('/appointments'); }, 3000);
                         } catch (error) {
                             console.error('Payment verification failed:', error);
                             alert("Payment verification failed. Please try again.");
@@ -124,9 +127,10 @@ function DoctorDetails() {
                 };
                 const rzp1 = new window.Razorpay(options);
                 rzp1.open();
-            } else if (paymentMethod === 'wallet') {
+            } else if (method === 'wallet') {
                 await axios.post(`${baseURL}/api/users/wallet_payment/`, { booking_id }, { headers: { Authorization: `Bearer ${token}` } });
                 setPaymentSuccess(true);
+                setShowModal(true);
                 setTimeout(() => { navigate('/appointments'); }, 5000);
             }
         } catch (error) {
@@ -203,67 +207,59 @@ function DoctorDetails() {
                                 <label className="block mb-2">Filter by Time:</label>
                                 <input 
                                     type="text" 
+                                    placeholder="E.g., 10:00 AM - 11:00 AM" 
                                     value={timeFilter} 
                                     onChange={(e) => setTimeFilter(e.target.value)} 
-                                    className="border rounded p-2 w-full" 
-                                    placeholder="Enter time range (e.g., 10:00 AM)"
+                                    className="border rounded p-2 w-full"
                                 />
                             </div>
                         </div>
                     )}
 
-                    {/* Available slots */}
-                    {filteredSlots.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {filteredSlots.map(slot => (
-                                <div
-                                    key={slot.id}
-                                    className={`p-4 border rounded-lg ${selectedSlot?.id === slot.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
-                                    onClick={() => setSelectedSlot(slot)}
-                                >
-                                    <h5 className="text-lg font-semibold">{formatSlot(slot).date}</h5>
-                                    <p className="text-gray-700">{formatSlot(slot).timeRange}</p>
-                                    {selectedSlot?.id === slot.id && <FaCheck className="text-green-500 mt-2" />}
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <Typography variant="body2" className="text-center">No available slots.</Typography>
-                    )}
 
-                    {/* Payment Method */}
-                    <div className="mt-6">
-                        <Typography variant="h6" className="font-bold mb-4">Select Payment Method</Typography>
-                        <div className="flex items-center space-x-6">
-                            <Radio 
-                                name="paymentMethod" 
-                                label="Razorpay" 
-                                value="razorpay" 
-                                checked={paymentMethod === 'razorpay'} 
-                                onChange={() => handlePaymentMethodChange('razorpay')} 
-                            />
-                            <Radio 
-                                name="paymentMethod" 
-                                label="Wallet" 
-                                value="wallet" 
-                                checked={paymentMethod === 'wallet'} 
-                                onChange={() => handlePaymentMethodChange('wallet')} 
-                            />
-                        </div>
-                    </div>
-
-                    {/* Book Now Button */}
-                    <div className="mt-6 flex justify-center">
-                        <Button onClick={handleBookNow} disabled={!selectedSlot}>
-                            <FaCreditCard className="mr-2" />
-                            Book Now
-                        </Button>
-                    </div>
-
-                    {/* Payment Success Message */}
-                    {paymentSuccess && <PaymentSuccessMessage />}
-                </div>
+{filteredSlots.length > 0 ? (
+    filteredSlots.map(slot => (
+        <div 
+            key={slot.id} 
+            className={`p-4 border rounded-lg mb-4 ${selectedSlot?.id === slot.id ? 'border-blue-500 bg-blue-100 shadow-lg' : 'border-gray-300 bg-white'}`}
+            onClick={() => setSelectedSlot(selectedSlot?.id === slot.id ? null : slot)} // Toggle selected slot
+        >
+            <div className="flex justify-between">
+                <Typography variant="subtitle1" className="font-semibold text-gray-700">Date: {formatSlot(slot).date}</Typography>
+                <Typography variant="subtitle1" className="font-semibold text-gray-700">Time: {formatSlot(slot).timeRange}</Typography>
             </div>
+
+            {/* Render Payment Buttons directly under the selected slot */}
+            {selectedSlot?.id === slot.id && (
+                <div className="mt-4 space-x-4 flex justify-center">
+                    <Button 
+                        className={`bg-green-500 text-white hover:bg-green-600 transition duration-150`} 
+                        onClick={() => handlePaymentMethodChange('razorpay')}
+                    >
+                        Razorpay
+                    </Button>
+                    <Button 
+                        className={`bg-blue-500 text-white hover:bg-blue-600 transition duration-150`} 
+                        onClick={() => handlePaymentMethodChange('wallet')}
+                    >
+                        Wallet
+                    </Button>
+                </div>
+            )}
+        </div>
+    ))
+) : (
+    <Typography align="center" className="mt-6">No slots available for the selected filters.</Typography>
+)}
+
+</div>
+</div>
+
+
+{paymentSuccess && (
+    <PaymentSuccessMessage showModal={showModal} setShowModal={setShowModal} />
+)}
+
         </div>
     );
 }

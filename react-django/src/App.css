@@ -49,3 +49,17 @@
 
 /* Optional: Adding some responsive styles */
 
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-description {
+  animation: fadeIn 0.8s ease forwards; /* Adjust duration and easing as needed */
+}

@@ -24,7 +24,7 @@ function Loginpage() {
   console.log('name', authentication_user.name);
 
   useEffect(() => {
-    if (authentication_user.isAuthenticated && !authentication_user.isAdmin && !authentication_user.isDoctor) {
+    if (authentication_user.isAuthenticated && authentication_user.isUser && !authentication_user.isAdmin && !authentication_user.isDoctor) {
       console.log('authenticated user');
       navigate('/home');
     }
@@ -71,6 +71,7 @@ function Loginpage() {
           set_authentication({
             name: jwtDecode(res.data.access_token).username,
             isAuthenticated: true,
+            isUser:true,
             userid: res.data.userid,
             isAdmin: false,
             isDoctor: false,

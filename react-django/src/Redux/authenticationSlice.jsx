@@ -10,6 +10,7 @@ export const authenticationSlice = createSlice({
     isAdmin: false,
     isActive: false,
     isDoctor:false,
+    isUser:false,
   },
   reducers: {
     set_authentication(state, action) {
@@ -20,6 +21,7 @@ export const authenticationSlice = createSlice({
       state.isActive = action.payload.isActive;
       state.token = action.payload.token;
       state.isDoctor = action.payload.isDoctor
+      state.isUser = action.payload.isUser
     },
   },
 });
