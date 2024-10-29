@@ -40,7 +40,7 @@ const Header = () => {
   const navList = (
     <ul className="flex flex-col lg:flex-row lg:items-center lg:gap-4 mt-2 mb-4 lg:mt-0 lg:mb-0 justify-center lg:justify-end">
       <li><Link to='/doctor/home' className="text-black p-2 font-medium">Home</Link></li>
-      <li><Link to="/doctors" className="text-black p-2 font-medium">Doctors</Link></li>
+      
       <li><Link to="/doctor/Slots/Slots" className="text-black p-2 font-medium">Slots</Link></li>
       
       <li><Link to="/doctor/chat_rooms" className="text-black p-2 font-medium">Contacts</Link></li>
@@ -143,9 +143,10 @@ const Header = () => {
         <div className="right-0 z-10  w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
           <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
             <Link to="/doctor/home" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Home</Link>
-            <Link to="/doctors" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Doctors</Link>
-            <Link to="/about" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">About</Link>
+            <li><Link to="/doctor/Slots/Slots" className="text-black p-2 font-medium">Slots</Link></li>
+            
             <Link to="/contact" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Contact</Link>
+
             <li>
               <button
                 onClick={logout}

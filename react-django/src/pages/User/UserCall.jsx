@@ -5,8 +5,8 @@ import { jwtDecode } from 'jwt-decode';
 import { io } from 'socket.io-client';
 
 const SOCKET_URL = 'http://127.0.0.1:8000';
-const APP_ID = 827751106; 
-const SERVER_SECRET = "ae15619cffa26b4920a5375c946575c0"; 
+const APP_ID = 1326632699; 
+const SERVER_SECRET = "4ec34b51aabd8692ad7ef9c0f2ca551e"; 
 
 const UserCall = () => {
     const { roomId } = useParams();
