@@ -9,6 +9,7 @@ const ArticleGenerator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState(false);
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
 
   const fetchArticle = async () => {
     setLoading(true);
@@ -16,7 +17,7 @@ const ArticleGenerator = () => {
     setExpanded(false);
     try {
       const response = await axios.get(
-        "http://127.0.0.1:8000/api/articles/generate-article/"
+        `${baseURL}/api/articles/generate-article/`
       );
       console.log("API response:", response.data);
 
