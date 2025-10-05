@@ -6,6 +6,7 @@ import { Button, Input } from "@material-tailwind/react";
 
 function ForgotPassword() {
   const navigate = useNavigate();
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL
 
   const handleEmail = async (event) => {
     event.preventDefault();
@@ -13,7 +14,7 @@ function ForgotPassword() {
 
     try {
       const res = await axios.post(
-        "http://127.0.0.1:8000/api/users/fpassword/",
+        `${baseURL}/api/users/fpassword/`,
         {
           email: email,
         }

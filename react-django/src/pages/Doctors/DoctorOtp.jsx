@@ -11,7 +11,7 @@ function DoctorOtp() {
   const inputRefs = useRef(Array.from({ length: 4 }, () => React.createRef()));
   const [seconds, setSeconds] = useState(60);
   const [resendDisabled, setResendDisabled] = useState(false); // Add resendDisabled state
-  const baseURL = 'http://127.0.0.1:8000';
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL
   const navigate = useNavigate();
   const registeredEmail = localStorage.getItem('registeredEmail');
   const dispatch = useDispatch();

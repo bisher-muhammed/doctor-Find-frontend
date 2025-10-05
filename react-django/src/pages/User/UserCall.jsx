@@ -4,9 +4,9 @@ import { ZegoUIKitPrebuilt } from '@zegocloud/zego-uikit-prebuilt';
 import { jwtDecode } from 'jwt-decode';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = 'http://127.0.0.1:8000';
-const APP_ID = 1326632699; 
-const SERVER_SECRET = "4ec34b51aabd8692ad7ef9c0f2ca551e"; 
+const SOCKET_URL = import.meta.env.VITE_REACT_APP_API_URL
+const APP_ID = 1082386720; 
+const SERVER_SECRET = "80e81a11988162f0cde0a83f18a54556"; 
 
 const UserCall = () => {
     const { roomId } = useParams();

@@ -9,7 +9,7 @@ function DoctorNotification() {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const token = localStorage.getItem('access'); // Get the token from localStorage
-    const baseURL = 'http://127.0.0.1:8000';
+    const baseURL = import.meta.env.VITE_REACT_APP_API_URL
     const socket = useRef(null); // Use useRef for the socket
 
     let doctorId;

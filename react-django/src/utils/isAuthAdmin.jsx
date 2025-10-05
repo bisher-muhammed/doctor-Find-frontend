@@ -4,7 +4,7 @@ import { set_authentication } from '../Redux/authenticationSlice';
 import { store } from '../Redux/Store';
 
 
-const baseURL = 'http://127.0.0.1:8000'; // Ensure that this is correct for your backend
+const baseURL = import.meta.env.VITE_REACT_APP_API_URL // Ensure that this is correct for your backend
 
 // Function to refresh the token
 const UpdateAdminToken = async () => {

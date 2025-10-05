@@ -11,7 +11,7 @@ function AboutPage() {
     <User_Navbar />
     {/* Hero Section */}
     <div className="relative bg-white pt-4">
-        <div className="max-w-screen-xl mx-auto">
+        {/* <div className="max-w-screen-xl mx-auto">
             <img
                 src={doctorConsultingImg}
                 alt="Doctor Consulting"
@@ -20,7 +20,7 @@ function AboutPage() {
             </div>
         <div className="absolute inset-0 bg-gray-900 bg-opacity-40 flex items-center justify-center">
           <h1 className="text-4xl font-bold text-white">About Find Doctor</h1>
-        </div>
+        </div> */}
       </div>
 
       {/* Introduction Section */}

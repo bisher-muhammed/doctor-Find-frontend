@@ -9,7 +9,7 @@ const TotalRevenueDisplay = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [animate, setAnimate] = useState(false); // State to trigger animation
-  const baseURL = 'http://127.0.0.1:8000';
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL
   const token = localStorage.getItem('access');
 
   useEffect(() => {
@@ -20,9 +20,13 @@ const TotalRevenueDisplay = () => {
             Authorization: `Bearer ${token}`,
           },
         });
+        console.log('response',response.data)
+        
 
         setTotalRevenue(response.data.total_revenue);
         setDoctorCount(response.data.doctor_count);
+
+
         setPatientCount(response.data.patient_count);
         setAnimate(true); // Trigger the animation
       } catch (err) {

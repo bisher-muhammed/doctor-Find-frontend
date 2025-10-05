@@ -4,25 +4,54 @@ import { useDispatch } from 'react-redux';
 import { set_profile_details } from '../../../Redux/UserProfileSlice';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import * as yup from 'yup';
+import { differenceInYears } from 'date-fns';
+import {
+    Card, CardHeader, CardContent, CardActions,
+    TextField, Button, Select, MenuItem, InputLabel,
+    FormControl, CircularProgress, Avatar
+} from '@mui/material';
+
+// Validation Schema
+const profileValidationSchema = yup.object().shape({
+    username: yup.string().required("Username is required"),
+    email: yup.string().email("Invalid email").required("Email is required"),
+    first_name: yup.string()
+        .matches(/^[A-Za-z]+$/, "First name must contain only letters")
+        .min(4, "First name must be at least 4 characters")
+        .required("First name is required"),
+    last_name: yup.string()
+        .matches(/^[A-Za-z]+$/, "Last name must contain only letters")
+        .min(2, "Last name must be at least 2 characters")
+        .required("Last name is required"),
+    date_of_birth: yup.date()
+        .required("Date of birth is required")
+        .test("age", "You must be at least 18 years old", value =>
+            differenceInYears(new Date(), new Date(value)) >= 18
+        ),
+    gender: yup.string().oneOf(["Male", "Female", "Other"], "Invalid gender").required("Gender is required"),
+    phone: yup.string()
+        .matches(/^\d+$/, "Phone must be digits only")
+        .min(10, "Phone must be at least 10 digits")
+        .required("Phone is required"),
+    address: yup.string()
+        .min(5, "Address must be at least 5 characters")
+        .max(255, "Address cannot be more than 255 characters")
+        .required("Address is required"),
+    city: yup.string().matches(/^[A-Za-z\s]+$/, "City must contain only letters").required("City is required"),
+    state: yup.string().matches(/^[A-Za-z\s]+$/, "State must contain only letters").required("State is required"),
+    country: yup.string().matches(/^[A-Za-z\s]+$/, "Country must contain only letters").required("Country is required"),
+});
 
 function EditProfile() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const baseURL = 'http://127.0.0.1:8000';
+    const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
     const [errors, setErrors] = useState({});
     const [formData, setFormData] = useState({
-        username: "",
-        first_name: "",
-        last_name: "",
-        date_of_birth: "",
-        gender: "",
-        email: "",
-        phone: "",
-        address: "",
-        state: "",
-        city: "",
-        country: "",
-        profile_pic: null
+        username: "", first_name: "", last_name: "", date_of_birth: "",
+        gender: "", email: "", phone: "", address: "", state: "",
+        city: "", country: "", profile_pic: null
     });
     const [loading, setLoading] = useState(true);
     const [previewImage, setPreviewImage] = useState(null);
@@ -32,14 +61,9 @@ function EditProfile() {
         const fetchUserProfile = async () => {
             try {
                 const response = await axios.get(`${baseURL}/api/users/user_details/`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const userData = response.data;
-
                 setFormData({
                     username: userData.user?.username || "",
                     first_name: userData.first_name || "",
@@ -52,292 +76,151 @@ function EditProfile() {
                     state: userData.state || "",
                     city: userData.city || "",
                     country: userData.country || "",
-                    profile_pic: userData.profile_pic || null
+                    profile_pic: null,
                 });
-
                 if (userData.profile_pic) {
                     setPreviewImage(`${baseURL}${userData.profile_pic}`);
                 }
-                setLoading(false);
             } catch (error) {
                 console.error("Error fetching user profile:", error);
+            } finally {
                 setLoading(false);
             }
         };
-
         fetchUserProfile();
     }, [token]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData({
-            ...formData,
-            [name]: value
-        });
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            setFormData({ ...formData, profile_pic: file });
+        if (file) {
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+            const maxSize = 5 * 1024 * 1024; // 5MB
+
+            if (!allowedTypes.includes(file.type)) {
+                setErrors(prev => ({ ...prev, profile_pic: 'Only jpeg, png, gif, and webp images are allowed' }));
+                return;
+            }
+
+            if (file.size > maxSize) {
+                setErrors(prev => ({ ...prev, profile_pic: 'Image must be smaller than 5MB' }));
+                return;
+            }
+
+            setErrors(prev => ({ ...prev, profile_pic: null }));
+            setFormData(prev => ({ ...prev, profile_pic: file }));
 
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreviewImage(reader.result);
-            };
+            reader.onloadend = () => setPreviewImage(reader.result);
             reader.readAsDataURL(file);
-        } else {
-            setErrors({ profile_pic: 'Please select a valid image file' });
         }
-    };
-
-    const validateForm = () => {
-        let formErrors = {};
-
-        if (!formData.first_name) formErrors.first_name = "First name is required.";
-        if (!formData.email) formErrors.email = "Email is required.";
-        if (!/^\S+@\S+\.\S+$/.test(formData.email)) formErrors.email = "Enter a valid email.";
-        if (!formData.phone || formData.phone.length < 10) formErrors.phone = "Phone number must be at least 10 digits.";
-
-        setErrors(formErrors);
-        return Object.keys(formErrors).length === 0;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!validateForm()) return;
-    
-        const formDataToSend = new FormData();
-    
-        // Append form fields (except profile_pic)
-        for (let key in formData) {
-            if (key !== 'profile_pic') {
-                formDataToSend.append(key, formData[key]);
-            }
+
+        if (errors.profile_pic) {
+            toast.error("Please fix the image error before submitting.");
+            return;
         }
-    
-        // Append profile_pic only if a new image is selected (it's a File)
-        if (formData.profile_pic instanceof File) {
-            formDataToSend.append('profile_pic', formData.profile_pic);
-        }
-    
+
         try {
+            await profileValidationSchema.validate(formData, { abortEarly: false });
+
+            const formDataToSend = new FormData();
+            Object.keys(formData).forEach((key) => {
+                if (key !== 'profile_pic' || formData.profile_pic instanceof File) {
+                    formDataToSend.append(key, formData[key]);
+                }
+            });
+
             const response = await axios.put(`${baseURL}/api/users/edit_profile/`, formDataToSend, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
-                },
+                }
             });
-    
+
             dispatch(set_profile_details(response.data));
             toast.success("Profile updated successfully");
             navigate('/user_details');
-        } catch (error) {
-            if (error.response && error.response.data) {
-                setErrors(error.response.data);  // Backend validation errors
+        } catch (err) {
+            if (err.name === 'ValidationError') {
+                const fieldErrors = {};
+                err.inner.forEach(e => {
+                    fieldErrors[e.path] = e.message;
+                });
+                setErrors(fieldErrors);
             } else {
-                console.error("Error updating profile:", error);
+                setErrors(err.response?.data || {});
             }
         }
     };
 
     if (loading) {
-        return <div>Loading...</div>;
+        return <div className="flex justify-center mt-10"><CircularProgress /></div>;
     }
 
     return (
-        <div className="container mx-auto p-6 mt-6">
-            <h1 className="text-3xl py-10 font-bold text-center mb-8 text-red-600">Edit Profile</h1>
-            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto bg-white shadow-md rounded-md px-8 pt-6 pb-8 mb-4 border-black border">
-                <PersonalInfo formData={formData} handleChange={handleChange} errors={errors} />
-                <ContactInfo formData={formData} handleChange={handleChange} errors={errors} />
-
-                <div className="mb-4">
-                    <label className="block text-black text-sm font-bold mb-2" htmlFor="profile_pic">Profile Picture</label>
-                    <input
-                        type="file"
-                        name="profile_pic"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                    />
-                    {errors.profile_pic && <p className="text-red-500 text-xs italic">{errors.profile_pic}</p>}
-                    {previewImage && (
-                        <div className="mt-4">
-                            <img src={previewImage} alt="Preview" className="max-w-xs mx-auto rounded-full border border-blue-400 shadow-lg" />
-                        </div>
+        <Card className="max-w-xl mx-auto p-10 mt-6 mb-6">
+            <CardHeader title="Edit Profile" />
+            <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="flex justify-center">
+                        <Avatar src={previewImage} sx={{ width: 80, height: 80 }} />
+                    </div>
+                    <input type="file" accept="image/*" onChange={handleImageChange} />
+                    {errors.profile_pic && (
+                        <p className="text-red-500 text-sm mt-1">{errors.profile_pic}</p>
                     )}
-                </div>
 
-                <div className="flex items-center justify-between">
-                    <button
-                        type="submit"
-                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                    >
-                        Save Changes
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => navigate('/user_details')}
-                        className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </form>
-        </div>
-    );
-}
+                    <TextField label="Username" name="username" fullWidth value={formData.username}
+                        onChange={handleChange} error={!!errors.username} helperText={errors.username} />
+                    <TextField label="Email" name="email" fullWidth value={formData.email}
+                        onChange={handleChange} error={!!errors.email} helperText={errors.email} />
+                    <TextField label="First Name" name="first_name" fullWidth value={formData.first_name}
+                        onChange={handleChange} error={!!errors.first_name} helperText={errors.first_name} />
+                    <TextField label="Last Name" name="last_name" fullWidth value={formData.last_name}
+                        onChange={handleChange} error={!!errors.last_name} helperText={errors.last_name} />
+                    <TextField type="date" label="Date of Birth" name="date_of_birth" fullWidth
+                        value={formData.date_of_birth} onChange={handleChange}
+                        error={!!errors.date_of_birth} helperText={errors.date_of_birth} />
 
-function PersonalInfo({ formData, handleChange, errors }) {
-    return (
-        <>
-            <div className="mb-4">
-                <label className="block text-black text-sm font-bold mb-2" htmlFor="username">Username</label>
-                <input
-                    type="text"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                />
-                {errors.username && <p className="text-red-500 text-xs italic">{errors.username}</p>}
-            </div>
+                    <FormControl fullWidth error={!!errors.gender}>
+                        <InputLabel>Gender</InputLabel>
+                        <Select name="gender" value={formData.gender} onChange={handleChange}>
+                            <MenuItem value="Male">Male</MenuItem>
+                            <MenuItem value="Female">Female</MenuItem>
+                            <MenuItem value="Other">Other</MenuItem>
+                        </Select>
+                        {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender}</p>}
+                    </FormControl>
 
-            <div className="grid grid-cols-2 gap-4">
-                <div className="mb-4">
-                    <label className="block text-black text-sm font-bold mb-2" htmlFor="first_name">First Name</label>
-                    <input
-                        type="text"
-                        name="first_name"
-                        value={formData.first_name}
-                        onChange={handleChange}
-                        className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                    />
-                    {errors.first_name && <p className="text-red-500 text-xs italic">{errors.first_name}</p>}
-                </div>
-
-                <div className="mb-4">
-                    <label className="block text-black text-sm font-bold mb-2" htmlFor="last_name">Last Name</label>
-                    <input
-                        type="text"
-                        name="last_name"
-                        value={formData.last_name}
-                        onChange={handleChange}
-                        className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                    />
-                    {errors.last_name && <p className="text-red-500 text-xs italic">{errors.last_name}</p>}
-                </div>
-            </div>
-
-            <div className="mb-4">
-                <label className="block text-black text-sm font-bold mb-2" htmlFor="date_of_birth">Date of Birth</label>
-                <input
-                    type="date"
-                    name="date_of_birth"
-                    value={formData.date_of_birth}
-                    onChange={handleChange}
-                    className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                />
-                {errors.date_of_birth && <p className="text-red-500 text-xs italic">{errors.date_of_birth}</p>}
-            </div>
-
-             <div className="mb-4">
-                <label className="block text-black text-sm font-bold mb-2" htmlFor="gender">Gender</label>
-                <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                >
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                </select>
-                {errors.gender && <p className="text-red-500 text-xs italic">{errors.gender}</p>}
-            </div> 
-        </>
-    );
-}
-
-function ContactInfo({ formData, handleChange, errors }) {
-    return (
-        <>
-            <div className="mb-4">
-                <label className="block text-black text-sm font-bold mb-2" htmlFor="email">Email</label>
-                <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                />
-                {errors.email && <p className="text-red-500 text-xs italic">{errors.email}</p>}
-            </div>
-
-            <div className="mb-4">
-                <label className="block text-black text-sm font-bold mb-2" htmlFor="phone">Phone</label>
-                <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                />
-                {errors.phone && <p className="text-red-500 text-xs italic">{errors.phone}</p>}
-            </div>
-
-            <div className="mb-4">
-                <label className="block text-black text-sm font-bold mb-2" htmlFor="address">Address</label>
-                <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                />
-                {errors.address && <p className="text-red-500 text-xs italic">{errors.address}</p>}
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-                <div className="mb-4">
-                    <label className="block text-black text-sm font-bold mb-2" htmlFor="city">City</label>
-                    <input
-                        type="text"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleChange}
-                        className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                    />
-                    {errors.city && <p className="text-red-500 text-xs italic">{errors.city}</p>}
-                </div>
-
-                <div className="mb-4">
-                    <label className="block text-black text-sm font-bold mb-2" htmlFor="state">State</label>
-                    <input
-                        type="text"
-                        name="state"
-                        value={formData.state}
-                        onChange={handleChange}
-                        className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                    />
-                    {errors.state && <p className="text-red-500 text-xs italic">{errors.state}</p>}
-                </div>
-
-                <div className="mb-4">
-                    <label className="block text-black text-sm font-bold mb-2" htmlFor="country">Country</label>
-                    <input
-                        type="text"
-                        name="country"
-                        value={formData.country}
-                        onChange={handleChange}
-                        className="appearance-none block w-full bg-white text-black font-bold border border-blue-400 rounded py-3 px-4 mb-3 focus:bg-red-200 shadow-slate-800"
-                    />
-                    {errors.country && <p className="text-red-500 text-xs italic">{errors.country}</p>}
-                </div>
-            </div>
-        </>
+                    <TextField label="Phone" name="phone" fullWidth value={formData.phone}
+                        onChange={handleChange} error={!!errors.phone} helperText={errors.phone} />
+                    <TextField label="Address" name="address" fullWidth value={formData.address}
+                        onChange={handleChange} error={!!errors.address} helperText={errors.address} />
+                    <TextField label="City" name="city" fullWidth value={formData.city}
+                        onChange={handleChange} error={!!errors.city} helperText={errors.city} />
+                    <TextField label="State" name="state" fullWidth value={formData.state}
+                        onChange={handleChange} error={!!errors.state} helperText={errors.state} />
+                    <TextField label="Country" name="country" fullWidth value={formData.country}
+                        onChange={handleChange} error={!!errors.country} helperText={errors.country} />
+                </form>
+            </CardContent>
+            <CardActions>
+                <Button type="submit" variant="contained" color="primary" onClick={handleSubmit}>
+                    Save Changes
+                </Button>
+                <Button variant="outlined" color="secondary" onClick={() => navigate('/user_details')}>
+                    Cancel
+                </Button>
+            </CardActions>
+        </Card>
     );
 }
 

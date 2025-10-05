@@ -14,7 +14,7 @@ import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import Cookies from 'js-cookie';
 import AdminSidebar from '../../Components/Admin/AdminSidebar';
 
-const baseURL = 'http://127.0.0.1:8000';
+const baseURL = import.meta.env.VITE_REACT_APP_API_URL
 
 const DocumentList = () => {
     const [documents, setDocuments] = useState([]);

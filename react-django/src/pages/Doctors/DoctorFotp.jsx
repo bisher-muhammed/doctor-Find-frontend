@@ -11,12 +11,13 @@ function DoctorFotp() {
     const navigate = useNavigate();
     const registeredEmail = localStorage.getItem('registeredEmail');
     const user_id = localStorage.getItem('user_id');
+    const baseURL = import.meta.env.VITE_REACT_APP_API_URL
   
     const handleVerification = async (e) => {
       e.preventDefault();
       const enteredOtp = otpValues.join('');
       try {
-        const res = await axios.post('http://127.0.0.1:8000/api/doctors/doctor/otpverify/', {
+        const res = await axios.post(`${baseURL}/api/doctors/doctor/otpverify/`, {
           email: registeredEmail,
           otp: enteredOtp,
         });

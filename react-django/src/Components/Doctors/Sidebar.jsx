@@ -1,78 +1,77 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { FaCalendarAlt, FaUserMd, FaUserEdit, FaUserTie } from 'react-icons/fa';
-import { MdDashboard } from 'react-icons/md';
-import SlotButton from './SlotButton';
+import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, useMediaQuery, Box, Typography } from '@mui/material';
+import { FaCalendarAlt, FaUserMd, FaUserEdit } from 'react-icons/fa';
+import { MdDashboard, MdMenu } from 'react-icons/md';
 
 const navItems = [
-  { to: '/doctor/home', icon: <MdDashboard />, label: 'Dashboard' },
-  { to: '/doctor/Bookings/bookings', icon: <FaCalendarAlt />, label: 'Appointments' },
-  { to: '/doctor/doctor_details', icon: <FaUserMd />, label: 'Profile' },
-  { to: '/doctor/edit_profile', icon: <FaUserEdit />, label: 'Edit Profile' },
+  { to: '/doctor/home', icon: <MdDashboard size={24} />, label: 'Dashboard' },
+  { to: '/doctor/Bookings/bookings', icon: <FaCalendarAlt size={24} />, label: 'Appointments' },
+  { to: '/doctor/doctor_details', icon: <FaUserMd size={24} />, label: 'Profile' },
+  { to: '/doctor/edit_profile', icon: <FaUserEdit size={24} />, label: 'Edit Profile' },
 ];
 
 function Sidebar() {
   const authentication_user = useSelector((state) => state.authUser);
   const navigate = useNavigate();
-  const token = localStorage.getItem('access');
+  const isMobile = useMediaQuery('(max-width:768px)');
+  const [open, setOpen] = useState(!isMobile); // Open on desktop, closed on mobile
 
   useEffect(() => {
     if (authentication_user.isAuthenticated && authentication_user.isDoctor) {
-      console.log('User is already authenticated. Redirecting...');
       navigate('/doctor/home');
     } else if (!authentication_user.isAuthenticated) {
       navigate('/doctor/login');
     }
-  }, [authentication_user.isAuthenticated, authentication_user.isDoctor, navigate, token]);
+  }, [authentication_user.isAuthenticated, authentication_user.isDoctor, navigate]);
 
   return (
-    <aside
-      id="doctor-sidebar"
-      className="fixed top-0 left-0 z-40 w-64 h-screen bg-white shadow-lg sm:translate-x-0 md:w-64 lg:w-72"
-      aria-label="Sidebar"
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: open ? (isMobile ? 80: 240) : 80,
+        flexShrink: 0,
+        [`& .MuiDrawer-paper`]: {
+          width: open ? (isMobile ? 80 : 240) : 80,
+          transition: 'width 0.3s ease-in-out',
+          overflowX: 'hidden',
+          bgcolor: 'black', // Black Background
+          color: 'white', // White Text
+          boxShadow: 2,
+        },
+      }}
     >
-      <div className="h-full px-4 py-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="text-center text-gray-900 dark:text-white font-bold text-xl mb-8">
-          Doctor Dashboard
-        </div>
-        <nav>
-          <ul className="space-y-4 font-medium">
-            {navItems.map((item, index) => (
-              <li key={index}>
-                {item.to === '#' ? (
-                  <div
-                    className="flex items-center p-2 text-gray-700 rounded-lg dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 group"
-                  >
-                    <span
-                      className="w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
-                    >
-                      {item.icon}
-                    </span>
-                    <span className="ml-3">{item.label}</span>
-                  </div>
-                ) : (
-                  <Link
-                    to={item.to}
-                    className="flex items-center p-2 text-gray-700 rounded-lg dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 group"
-                  >
-                    <span
-                      className="w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
-                    >
-                      {item.icon}
-                    </span>
-                    <span className="ml-3">{item.label}</span>
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div className="mt-10">
-          
-        </div>
-      </div>
-    </aside>
+      <List sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* Toggle Button for Mobile View */}
+        {isMobile && (
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => setOpen(!open)} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <MdMenu size={20} color="white" />
+              <Typography variant="caption" sx={{ color: 'white', fontSize: '12px', marginTop: '4px' }}>
+                Menu
+              </Typography>
+            </ListItemButton>
+          </ListItem>
+        )}
+
+        {/* Sidebar Menu Items */}
+        {navItems.map((item, index) => (
+          <ListItem key={index} disablePadding>
+            <ListItemButton component={Link} to={item.to} sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <ListItemIcon sx={{ color: 'white', minWidth: 'auto' }}>{item.icon}</ListItemIcon>
+              {isMobile ? (
+                <Typography variant="caption" sx={{ color: 'white', fontSize: '8px', marginTop: '4px' }}>
+                  {item.label}
+                </Typography>
+              ) : (
+                <ListItemText primary={item.label} sx={{ color: 'white', marginLeft: '8px' }} />
+              )}
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </Drawer>
   );
 }
 

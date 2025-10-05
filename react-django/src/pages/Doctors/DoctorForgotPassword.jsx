@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 function DoctorForgotPassword() {
   const navigate = useNavigate();
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL
 
   const handleEmail = async (event) => {
     event.preventDefault();
@@ -13,7 +14,7 @@ function DoctorForgotPassword() {
 
     try {
       const res = await axios.post(
-        "http://127.0.0.1:8000/api/doctors/doctor/forgotpassword/",
+        `${baseURL}/api/doctors/doctor/forgotpassword/`,
         { email: email }
       );
 

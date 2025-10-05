@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { set_authentication } from "../../Redux/authenticationSlice";
+import { set_profile_details } from "../../Redux/UserProfileSlice";
 import axios from "axios";
 
 function User_Navbar() {
@@ -17,7 +18,20 @@ function User_Navbar() {
 
     const isChatRoom = location.pathname.startsWith('/chats/');
     const token = localStorage.getItem('access');
-    const baseURL = 'http://127.0.0.1:8000';
+    const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
+
+    // Debounce search for better performance
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchTerm) {
+                handleSearch(searchTerm);
+            } else {
+                setFilteredResults([]);
+            }
+        }, 500); // Adding debounce effect with 500ms delay
+        
+        return () => clearTimeout(timer); // Cleanup the timer on component unmount or searchTerm change
+    }, [searchTerm]);
 
     const logout = () => {
         localStorage.clear();
@@ -32,31 +46,47 @@ function User_Navbar() {
                 isDoctor: false,
             })
         );
+        
+        // Clear profile data as well
+        dispatch(set_profile_details({
+            username: null,
+            email: null,
+            phone: null,
+            address: null,
+            city: null,
+            country: null,
+            state: null,
+            date_of_birth: null,
+            first_name: null,
+            last_name: null,
+            gender: null,
+            profile_pic: null
+        }));
+    
         navigate('/login/');
     };
+    
 
-    const handleSearch = async (event) => {
-        const term = event.target.value;
-        setSearchTerm(term);
-
-        if (term) {
-            try {
-                const response = await axios.get(`${baseURL}/api/users/doctors_list/?search=${term}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setFilteredResults(response.data);
-            } catch (error) {
-                console.error('Error fetching search results:', error);
-            }
-        } else {
-            setFilteredResults([]); // Clear results if search term is empty
+    const handleSearch = async (term) => {
+        try {
+            const response = await axios.get(`${baseURL}/api/users/doctors_list/?search=${term}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setFilteredResults(response.data);
+        } catch (error) {
+            console.error('Error fetching search results:', error);
+            setFilteredResults([]); // Clear previous results in case of an error
         }
+    };
+
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
     };
 
     return (
         <>
             {!isChatRoom ? (
-                <nav className="bg-slate-400 p-4  fixed top-0 left-0 w-full z-10 shadow-md">
+                <nav className="bg-slate-400 p-4 fixed top-0 left-0 w-full z-10 shadow-md">
                     <div className="container mx-auto mb-1 flex justify-between items-center text-black">
                         <Link to="/" className="text-md font-bold">Find Doctor</Link>
 
@@ -84,7 +114,7 @@ function User_Navbar() {
                                     type="text"
                                     placeholder="Search..."
                                     value={searchTerm}
-                                    onChange={handleSearch}
+                                    onChange={handleSearchChange}
                                     className="w-full py-2 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 />
                             </div>
@@ -160,4 +190,3 @@ function User_Navbar() {
 }
 
 export default User_Navbar;
-

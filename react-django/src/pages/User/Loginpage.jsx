@@ -1,149 +1,253 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import {jwtDecode} from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 import { useDispatch, useSelector } from 'react-redux';
 import { set_authentication } from '../../Redux/authenticationSlice';
-import { ToastContainer,toast } from 'react-toastify';
-import login from '../../assets/login.jpg'
-
+import { toast } from 'react-toastify';
+import * as Yup from 'yup';
+import { FaEye, FaEyeSlash, FaEnvelope, FaLock } from 'react-icons/fa';
 
 function Loginpage() {
-  const [formError, setFormError] = useState([]);
-  const [message, setMessage] = useState(null);
-  const baseURL = 'http://127.0.0.1:8000';
+  const [formErrors, setFormErrors] = useState({});
+  const [shakeGeneralError, setShakeGeneralError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [focusedField, setFocusedField] = useState('');
+
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [loginError, setLoginError] = useState('');
-
   const authentication_user = useSelector(state => state.authUser);
-  console.log('auth admin', authentication_user.isAdmin);
-  console.log('name', authentication_user.name);
 
   useEffect(() => {
-    if (authentication_user.isAuthenticated && authentication_user.isUser && !authentication_user.isAdmin && !authentication_user.isDoctor) {
-      console.log('authenticated user');
+    if (
+      authentication_user.isAuthenticated &&
+      authentication_user.isUser &&
+      !authentication_user.isAdmin &&
+      !authentication_user.isDoctor
+    ) {
       navigate('/home');
     }
-  }, [authentication_user.isAuthenticated, authentication_user.isAdmin, authentication_user.isDoctor, navigate]);
+  }, [authentication_user, navigate]);
 
-  const handleLoginSubmit = async (event) => {
-    event.preventDefault();
-    setEmailError('');
-    setPasswordError('');
-    setLoginError('');
+  const loginSchema = Yup.object().shape({
+    email: Yup.string()
+      .email('Please enter a valid email address')
+      .required('Email is required'),
+    password: Yup.string()
+      .min(8, 'Password must be at least 8 characters')
+      .required('Password is required'),
+  });
 
-    const email = event.target.email.value;
-    const password = event.target.password.value;
-
-    if (!email.trim()) {
-      setEmailError('Email is required');
-      return;
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
-    if (!password.trim()) {
-      setPasswordError('Password is required');
-      return;
-    }
-    if (password.length > 0 && password.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
-      return;
-    }
+  };
 
-    const formData = new FormData();
-    formData.append('email', email);
-    formData.append('password', password);
+  const handleFocus = (field) => setFocusedField(field);
+
+  const handleBlur = async () => {
+    if (focusedField) {
+      try {
+        await loginSchema.validateAt(focusedField, formData);
+        setFormErrors(prev => ({ ...prev, [focusedField]: '' }));
+      } catch (err) {
+        setFormErrors(prev => ({ ...prev, [focusedField]: err.message }));
+      }
+      setFocusedField('');
+    }
+  };
+
+  const triggerShakeAnimation = () => {
+    setShakeGeneralError(false);
+    // Use requestAnimationFrame to ensure the state change is processed
+    requestAnimationFrame(() => {
+      setShakeGeneralError(true);
+      // Reset after animation completes
+      setTimeout(() => setShakeGeneralError(false), 400);
+    });
+  };
+
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setFormErrors({});
+    setIsLoading(true);
+
     try {
-      const res = await axios.post(`${baseURL}/api/users/login/`, formData);
-      console.log('Response', res);
+      await loginSchema.validate(formData, { abortEarly: false });
+
+      const trimmedEmail = formData.email.trim();
+      const submitData = new FormData();
+      submitData.append('email', trimmedEmail);
+      submitData.append('password', formData.password);
+
+      const res = await axios.post(`${baseURL}/api/users/login/`, submitData);
+
       if (res.status === 200) {
-        console.log(res.data);
-        console.log(jwtDecode(res.data.access_token).username);
-        console.log('user login success');
-        toast.success('Logged in successfully');
-        localStorage.setItem('access', res.data.access_token);
-        localStorage.setItem('refresh', res.data.refresh_token);
-        localStorage.setItem('userid', res.data.userid);
+        toast.success('🎉 Welcome back! Login successful');
+        const { access_token, refresh_token, userid } = res.data;
+        const username = jwtDecode(access_token).username;
+
+        localStorage.setItem('access', access_token);
+        localStorage.setItem('refresh', refresh_token);
+        localStorage.setItem('userid', userid);
 
         dispatch(
           set_authentication({
-            name: jwtDecode(res.data.access_token).username,
+            name: username,
             isAuthenticated: true,
-            isUser:true,
-            userid: res.data.userid,
+            isUser: true,
+            userid,
             isAdmin: false,
             isDoctor: false,
           })
         );
 
-        navigate('/home');
+        setTimeout(() => navigate('/home'), 1000);
       }
     } catch (error) {
-      console.log(error);
-      if (error.response && error.response.status === 401) {
-        toast.error('Invalid credentials');
-        setFormError(error.response.data);
+      if (error.name === 'ValidationError') {
+        const validationErrors = {};
+        error.inner.forEach(e => {
+          validationErrors[e.path] = e.message;
+        });
+        setFormErrors(validationErrors);
+      } else if (error.response && error.response.status === 401) {
+        setFormErrors({ general: 'Invalid email or password.' });
+        triggerShakeAnimation();
       } else {
-        console.log(error);
+        setFormErrors({ general: 'Something went wrong. Please try again.' });
+        console.error(error);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div>
-      <div className="main-h-screen flex ">
-        <div className="w-1/2 flex items-center justify-center bg-teal-200 relative">
-        <div className="relative w-full h-full"></div>
-        <img src={login} alt="Description" className="absolute inset-0 w-full h-full" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 relative overflow-hidden">
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-10 left-10 w-32 h-32 bg-blue-300 rounded-full opacity-10 animate-pulse" />
+        <div className="absolute bottom-20 right-10 w-28 h-28 bg-pink-300 rounded-full opacity-10 animate-pulse delay-1000" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-xl bg-white/90 backdrop-blur-xl rounded-3xl p-10 shadow-xl border border-white/30">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Welcome Back!
+          </h1>
+          <p className="text-gray-600 text-lg mt-2">Sign in to continue</p>
         </div>
-        <div className="w-1/2 flex-auto items-center justify-center-bg-slate-200">
-          <div className="max-w-mid w-full bg-yello-400 shadow-md rounded-lg p-8">
-            <form onSubmit={handleLoginSubmit}>
-              <h1 className="text-gray-800 font-bold text-2xl mb-1">Hello</h1>
-              <h2 className="text-xl font-semibold text-gray-700 mb-8">Welcome</h2>
-              <div className="mb-4">
-                <label htmlFor="email" className="block text-black text-sm font-bold mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  id="email"
-                  className="shadow appearance-none border rounded-xl w-full py-2 px-3 bg-black text-gray-300 leading-tight focus:outline-none focus:shadow-outline"
-                  required
-                />
-                {emailError && <span className="text-md text-red-800 mt-1 mb-5">{emailError}</span>}
-              </div>
-              <div className="mb-6">
-                <label htmlFor="password" className="block text-black text-sm font-bold mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  className="shadow appearance-none border rounded-xl w-full py-2 px-3 bg-black text-gray-300 mb-3 leading-tight focus:outline-none focus:shadow-outline"
-                  required
-                />
-              </div>
-              {passwordError ? (
-                <span className="text-md text-red-800">{passwordError}</span>
-              ) : (
-                loginError && <span className="text-md text-red-800">{loginError}</span>
-              )}
-              <div className="flex items-center justify-between">
-                <button type="submit" className="bg-black hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-xl focus:outline-none focus:shadow-outline">
-                  Login
-                </button>
-              </div>
-            </form>
-            <Link to="/fpassword"><span>Forgot password</span></Link><br />
-            <span>Don't have an account?</span> <Link to="/signup"><span>| Sign up</span></Link>
+
+        <form onSubmit={handleLoginSubmit} className="space-y-6">
+          {/* Email */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"><FaEnvelope /></div>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                onFocus={() => handleFocus('email')}
+                onBlur={handleBlur}
+                placeholder="Enter your email"
+                className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 shadow-sm text-base focus:outline-none focus:ring-4 ${
+                  formErrors.email
+                    ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-200'
+                    : focusedField === 'email'
+                    ? 'border-blue-500 bg-blue-50 focus:ring-blue-200'
+                    : 'border-gray-200 bg-white hover:bg-gray-50'
+                }`}
+              />
+            </div>
+            {formErrors.email && <p className="text-sm text-red-600 mt-1 animate-shake">{formErrors.email}</p>}
+          </div>
+
+          {/* Password */}
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"><FaLock /></div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                onFocus={() => handleFocus('password')}
+                onBlur={handleBlur}
+                placeholder="Enter your password"
+                className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 shadow-sm text-base focus:outline-none focus:ring-4 ${
+                  formErrors.password
+                    ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-200'
+                    : focusedField === 'password'
+                    ? 'border-blue-500 bg-blue-50 focus:ring-blue-200'
+                    : 'border-gray-200 bg-white hover:bg-gray-50'
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(prev => !prev)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600"
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+            {formErrors.password && <p className="text-sm text-red-600 mt-1 animate-shake">{formErrors.password}</p>}
+          </div>
+
+          {/* General Error */}
+          {formErrors.general && (
+            <div className={`bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-xl ${shakeGeneralError ? 'animate-shake' : ''}`}>
+              {formErrors.general}
+            </div>
+          )}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`w-full py-3 rounded-xl text-lg font-semibold text-white transition-all duration-300 ${
+              !isLoading
+                ? 'bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:brightness-110'
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {isLoading ? 'Signing you in...' : 'Sign In'}
+          </button>
+        </form>
+
+        {/* Links */}
+        <div className="mt-8 text-center space-y-4 text-sm text-gray-600">
+          <Link to="/fpassword" className="text-blue-600 hover:underline">Forgot Password?</Link>
+          <div>
+            New here? <Link to="/signup" className="text-blue-600 font-medium hover:underline">Create an account</Link>
           </div>
         </div>
       </div>
+
+      {/* Animations */}
+      <style jsx="true">{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-4px); }
+          40% { transform: translateX(4px); }
+          60% { transform: translateX(-4px); }
+          80% { transform: translateX(4px); }
+        }
+        .animate-shake {
+          animation: shake 0.4s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 }

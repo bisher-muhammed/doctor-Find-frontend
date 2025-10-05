@@ -17,7 +17,7 @@ export const useProfileContext = () => {
 // Provider component
 const ProfileContextProvider = ({ children }) => {
   const navigate = useNavigate();
-  const baseURL = 'http://127.0.0.1:8000';
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL
   const [token, setToken] = useState(localStorage.getItem('access'));
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -11,7 +11,7 @@ function DoctorLayout() {
   const showSidebar = location.pathname.startsWith('/doctor/messages');
 
   return (
-    <div className='flex h-screen bg-white'>
+    <>
       {/* Sidebar with Chat Room List */}
       {showSidebar && (
         <div className="w-1/3 bg-white border-slate-700 p-4 shadow-md fixed h-full top-0 left-0">
@@ -45,7 +45,7 @@ function DoctorLayout() {
           />
         </Routes>
       </div>
-    </div>
+    </>
   );
 }
 

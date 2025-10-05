@@ -12,7 +12,7 @@ const UserHeader = ({handlePhoneClick}) => {
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const baseURL = 'http://127.0.0.1:8000'; // Update with your API base URL
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL // Update with your API base URL
   const token = localStorage.getItem('access');
 
   const user = useRef(null);
@@ -69,7 +69,6 @@ const UserHeader = ({handlePhoneClick}) => {
         </div>
         <div className="flex space-x-4 ml-auto">
           <FaPhone color="#a3aed0" size={20} onClick={handlePhoneClick} className="cursor-pointer" />
-          <FaSearch color="#a3aed0" size={20} />
         </div>
       </div>
 

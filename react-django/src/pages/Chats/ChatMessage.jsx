@@ -1,127 +1,98 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import RecordRTC from 'recordrtc';
-import DoctorHeader from './DoctorHeader';
-import { FaFile, FaMicrophone, FaFileAudio, FaFileVideo, FaPlay, FaPause, FaPaperPlane } from 'react-icons/fa';
 import { io } from 'socket.io-client';
-import {jwtDecode} from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
+import DoctorHeader from './DoctorHeader';
 import User_Navbar from '../../Components/Users/User_Navbar';
 import CallModel from '../../Components/Chat/CallModel';
-import { current } from '@reduxjs/toolkit';
-
-
-// Modal components
-const ImagePreviewModal = ({ imageUrl, onClose }) => {
-  if (!imageUrl) return null;
-
-  return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-      <div className="relative bg-white p-4 rounded-lg shadow-lg w-full max-w-lg max-h-[80vh] overflow-hidden">
-        <button onClick={onClose} className="absolute top-2 right-2 text-gray-600 hover:text-gray-900">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
-        <img src={imageUrl} alt="Preview" className="w-full h-auto object-cover" />
-      </div>
-    </div>
-  );
-};
-
-const VideoPreviewModal = ({ videoUrl, onClose }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const videoRef = useRef(null);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      isPlaying ? videoRef.current.play() : videoRef.current.pause();
-    }
-  }, [isPlaying]);
-
-  if (!videoUrl) return null;
-
-  return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-      <div className="relative bg-white p-4 rounded-lg shadow-lg w-full max-w-lg max-h-[80vh] overflow-hidden">
-        <button onClick={onClose} className="absolute top-2 right-2 text-gray-600 hover:text-gray-900">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
-        <div className="relative w-full h-auto">
-          <video ref={videoRef} src={videoUrl} controls className="w-full h-full" />
-          <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="absolute bottom-2 right-2 bg-gray-800 text-white p-2 rounded-full"
-          >
-            {isPlaying ? <FaPause /> : <FaPlay />}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+import MessageInput from './MessageInput';
 
 const ChatMessage = () => {
   const { roomId } = useParams();
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [file, setFile] = useState(null);
-  const [fileType, setFileType] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recorder, setRecorder] = useState(null);
-  const [recordedAudios, setRecordedAudios] = useState([]);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
-  const [showModal, setShowModal] = useState(false); // Modal state
+  const [showModal, setShowModal] = useState(false);
   const [callId, setCallId] = useState(null);
-  const baseURL = 'http://127.0.0.1:8000';
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
   const token = localStorage.getItem('access');
   const scrollRef = useRef(null);
   const socket = useRef(null);
   const user = useRef(null);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
+  // Initialize user from token
   useEffect(() => {
     if (token) {
       try {
         const decodedToken = jwtDecode(token);
         user.current = decodedToken.user_id;
+        setLoading(false);
       } catch (error) {
         console.error('Invalid token:', error);
+        setLoading(false);
       }
+    } else {
+      setLoading(false);
     }
   }, [token]);
 
-  console.log(user.current)
+  // Reset states when roomId changes
+  useEffect(() => {
+    setMessages([]);
+    setShowModal(false);
+    setCallId(null);
+    setSocketConnected(false);
+  }, [roomId]);
 
-
+  // Initialize socket connection
   useEffect(() => {
     if (!roomId || !user.current) return;
+
+    // Cleanup previous socket if exists
+    if (socket.current) {
+      socket.current.disconnect();
+      socket.current = null;
+    }
 
     socket.current = io(baseURL, { transports: ['websocket'] });
 
     socket.current.on('connect', () => {
+      console.log('Socket connected for room:', roomId);
+      setSocketConnected(true);
       socket.current.emit('join_room', { room_id: roomId, user_id: user.current });
     });
 
+    socket.current.on('disconnect', () => {
+      console.log('Socket disconnected');
+      setSocketConnected(false);
+    });
+
     socket.current.on('receive_message', (data) => {
+      console.log('Received message:', data);
       setMessages((prevMessages) => [...prevMessages, data]);
     });
 
     return () => {
       if (socket.current) {
         socket.current.disconnect();
+        socket.current = null;
       }
+      setSocketConnected(false);
     };
-  }, [roomId]);
+  }, [roomId, baseURL]);
 
+  // Auto scroll to bottom
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Fetch initial messages
   useEffect(() => {
+    if (!roomId || !token) return;
+
     const fetchMessages = async () => {
       try {
         const response = await axios.get(`${baseURL}/api/chats/chat_rooms/${roomId}/`, {
@@ -133,176 +104,21 @@ const ChatMessage = () => {
       } catch (error) {
         console.error('Error fetching messages:', error);
       }
-      console.log(user.current)
     };
 
     fetchMessages();
-  }, [roomId, token]);
+  }, [roomId, token, baseURL]);
 
-  const handleStartRecording = () => {
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then((stream) => {
-        const newRecorder = new RecordRTC(stream, { type: 'audio' });
-        newRecorder.startRecording();
-        setRecorder(newRecorder);
-        setIsRecording(true);
-      })
-      .catch((error) => console.error('Error accessing microphone:', error));
-  };
-
-  const handleStopRecording = () => {
-    if (recorder) {
-      recorder.stopRecording(() => {
-        const audioBlob = recorder.getBlob();
-        setRecordedAudios((prev) => [...prev, audioBlob]);
-        setIsRecording(false);
-      });
-    }
-  };
-
-  const handleFileChange = (event) => {
-    const selectedFile = event.target.files[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setFileType(selectedFile.type.split('/')[0]);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (selectedFile.type.startsWith('video')) {
-          setVideoPreviewUrl(URL.createObjectURL(selectedFile));
-        } else if (selectedFile.type.startsWith('image')) {
-          setImagePreviewUrl(URL.createObjectURL(selectedFile));
-        }
-      };
-      reader.readAsDataURL(selectedFile);
-    }
-  };
-
-  const handleSendMessage = useCallback( async () => {
-    const formData = new FormData();
-    
-    // Add text content if available
-    if (newMessage.trim() !== '') {
-      formData.append('content', newMessage);
-    }
-    
-    // Add the selected file if available
-    if (file) {
-      if (fileType === 'image') {
-        formData.append('image', file);
-      } else if (fileType === 'video') {
-        formData.append('video', file);
-      } else if (fileType === 'audio') {
-        formData.append('voice_message', file); // Consistently using 'voice_message'
-      }
-    }
-    
-    // Add recorded audios if available
-    recordedAudios.forEach((audio, index) => {
-      formData.append('voice_message', audio, `recording_${index}.ogg`); // Keep using 'voice_message'
-    });
-  
-    try {
-      const response = await axios.post(`${baseURL}/api/chats/chat_rooms/${roomId}/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      // Clear form state after sending
-      setNewMessage('');
-      setFile(null);
-      setFileType(null);
-      setImagePreviewUrl(null);
-      setVideoPreviewUrl(null);
-      setRecordedAudios([]);
-      // Emit message to socket
-      socket.current.emit('send_message', {
-        room_id: roomId,
-        content: newMessage || '', // Fallback if no text message is provided
-        image: response.data.image||null,
-        video: response.data.video||null,
-        voice_message: response.data.voice_message || null, // Use the voice message URL from the response
-        sender: user.current,
-      });
-    } catch (error) {
-      console.error('Error sending message:', error.response ? error.response.data : error.message);
-    }
-  },[token,newMessage, file, fileType, recordedAudios, baseURL, token]);
-
-  const handleCloseImagePreview = () => {
-    setImagePreviewUrl(null);
-  };
-
-  const handleCloseVideoPreview = () => {
-    setVideoPreviewUrl(null);
-  };
-  
-
-  // ------------------------------------------------------------------------------//
-
-  const randomID = (len = 5) => {
-    let result = "";
-    const chars = "12345qwertyuiopasdfgh67890jklmnbvcxzMNBVCZXASDQWERTYHGFUIOLKJP";
-    for (let i = 0; i < len; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
-  // Handle phone click to initiate a call
-  const handlePhoneClick = () => {
-    const callId = randomID(); // Generate random ID for the call
-    setCallId(callId);
-
-    if (socket && socket.current) {
-      socket.current.emit("call", {
-        callId,
-        sender: user.current,
-        room_id: roomId,
-        message: "Calling",
-      });
-      navigate(`/Call/${roomId}/${callId}`); // Navigate to the call page
-    } else {
-      console.error('Socket is not connected.');
-    }
-  };
-
-  // Handle accepting the call
-  const handleAcceptCall = () => {
-    if (callId && socket && socket.current) {
-      socket.current.emit("call", {
-        callId,
-        sender: user.current,
-        room_id: roomId,
-        message: "call_accepted",
-      });
-      navigate(`/Call/${roomId}/${callId}`);
-    }
-  };
-
-  // Handle declining the call
-  const handleDeclineCall = () => {
-    if (socket && socket.current) {
-      socket.current.emit("call", {
-        content: "call_declined",
-        sender: user.current,
-        room_id: roomId,
-      });
-      setShowModal(false);
-    }
-  };
-
-  // Handle incoming call messages from the socket
+  // Handle incoming call messages
   useEffect(() => {
-    if (!roomId || !user.current || !socket || !socket.current) return;
+    if (!roomId || !user.current || !socket.current) return;
 
     const handleAudioMessage = (data) => {
       console.log('Received audio message:', data);
 
       if (data.content === "Calling") {
         setCallId(data.callId);
-        setShowModal(true); // Show incoming call modal
+        setShowModal(true);
       }
 
       if (data.content === "call_declined") {
@@ -315,77 +131,142 @@ const ChatMessage = () => {
 
     return () => {
       if (socket.current) {
-        socket.current.off("receive_message", handleAudioMessage); // Cleanup on component unmount
+        socket.current.off("receive_message", handleAudioMessage);
       }
     };
-  }, [roomId, socket]);
+  }, [roomId, socket.current]);
 
+  // Generate random ID for calls
+  const randomID = (len = 5) => {
+    let result = "";
+    const chars = "12345qwertyuiopasdfgh67890jklmnbvcxzMNBVCZXASDQWERTYHGFUIOLKJP";
+    for (let i = 0; i < len; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
 
+  // Handle phone click to initiate a call
+  const handlePhoneClick = () => {
+    if (!socketConnected || !socket.current) {
+      alert('Connection not established. Please wait and try again.');
+      return;
+    }
 
+    const callId = randomID();
+    setCallId(callId);
 
+    socket.current.emit("call", {
+      callId,
+      sender: user.current,
+      room_id: roomId,
+      message: "Calling",
+    });
+    navigate(`/Call/${roomId}/${callId}`);
+  };
 
+  // Handle accepting the call
+  const handleAcceptCall = () => {
+    if (callId && socket.current) {
+      socket.current.emit("call", {
+        callId,
+        sender: user.current,
+        room_id: roomId,
+        message: "call_accepted",
+      });
+      navigate(`/Call/${roomId}/${callId}`);
+    }
+  };
+
+  // Handle declining the call
+  const handleDeclineCall = () => {
+    if (socket.current) {
+      socket.current.emit("call", {
+        content: "call_declined",
+        sender: user.current,
+        room_id: roomId,
+      });
+      setShowModal(false);
+    }
+  };
+
+  // Show loading state while initializing
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-lg">Loading...</p>
+      </div>
+    );
+  }
+
+  // Show error if no roomId or user
+  if (!roomId || !user.current) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-lg text-red-500">Invalid room or user session</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full h-screen relative flex flex-col mt-4">
-      <User_Navbar/>
+    <div className="w-full h-screen flex flex-col bg-gray-50">
+      {/* Header always shows once roomId and user are available */}
+      <DoctorHeader 
+        key={roomId} // Force re-render when roomId changes
+        handlePhoneClick={socketConnected ? handlePhoneClick : null} 
+      />
       
-      <DoctorHeader handlePhoneClick={handlePhoneClick}socket={socket}  />
-      <h2 className="text-xl font-semibold"></h2>
-
-      <div className="flex-1 overflow-auto p-4">
+      <User_Navbar />
+      
+      {/* Connection status indicator */}
+      {!socketConnected && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-2 text-sm">
+          <p className="flex items-center">
+            <span className="animate-pulse mr-2">●</span>
+            Connecting to chat...
+          </p>
+        </div>
+      )}
+      
+      <div className="flex-1 overflow-auto p-4 space-y-4">
         {messages.map((message, index) => (
           <div
             key={index}
-            className={`flex ${message.sender === user.current ? 'justify-end' : 'justify-start'} mb-4`}
+            className={`flex ${message.sender === user.current ? 'justify-end' : 'justify-start'} mb-2`}
           >
             <div className={`flex flex-col max-w-xs ${message.sender === user.current ? 'items-end' : 'items-start'}`}>
+              {message.content && (
+                <p className={`p-3 rounded-lg ${message.sender === user.current ? 'bg-slate-800 text-white' : 'bg-slate-400 text-black'}`}>
+                  {message.content}
+                </p>
+              )}
               {message.image && (
-                <div className="relative">
-                  <img
-                    src={message.image}
-                    alt="message"
-                    className="w-48 h-auto rounded-lg cursor-pointer"
-                    onClick={() => setImagePreviewUrl(message.image)}
-                  />
-                </div>
+                <img
+                  src={message.image}
+                  alt="Sent Image"
+                  className="max-w-xs h-auto object-cover cursor-pointer rounded-lg mb-2"
+                />
               )}
               {message.video && (
-                <div className="relative">
-                  <video
-                    src={message.video}
-                    controls
-                    className="w-48 h-auto rounded-lg cursor-pointer"
-                    onClick={() => setVideoPreviewUrl(message.video)}
-                  />
-                </div>
+                <video
+                  src={message.video}
+                  controls
+                  className="max-w-sm h-auto object-cover cursor-pointer rounded-lg mb-2"
+                />
               )}
               {message.voice_message && (
-                <audio controls className="w-48 rounded-lg">
+                <video controls className="w-48 rounded-lg mb-2">
                   <source src={message.voice_message} type="audio/ogg" />
                   Your browser does not support the audio element.
-                </audio>
+                </video>
               )}
-              {message.voice_recordings &&
-                message.voice_recordings.map((audioUrl, idx) => (
-                  <audio key={idx} controls className="w-48 rounded-lg">
-                    <source src={audioUrl} type="audio/ogg" />
-                    Your browser does not support the audio element.
-                  </audio>
-                ))}
-              {!message.image &&
-                !message.video &&
-                !message.voice_message &&
-                !message.voice_recordings && (
-                  <p className="bg-gray-200 p-2 rounded-lg text-gray-800">
-                    {message.content}
-                  </p>
-                )}
             </div>
           </div>
         ))}
         <div ref={scrollRef} />
       </div>
 
+      {/* Call Modal */}
       {showModal && (
         <CallModel
           callId={callId}
@@ -394,43 +275,17 @@ const ChatMessage = () => {
         />
       )}
 
-      <div className="p-4 bg-white">
-        <div className="flex space-x-4">
-          <textarea
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            rows="2"
-            className="w-full border border-gray-300 p-2 rounded-lg"
-            placeholder="Type a message"
-          />
-          <label className="flex items-center">
-            <FaFile className="cursor-pointer text-xl" />
-            <input type="file" className="hidden" onChange={handleFileChange} />
-          </label>
-          <button
-            className={`px-2 ${isRecording ? 'bg-red-500' : 'bg-gray-500'} text-white`}
-            onClick={isRecording ? handleStopRecording : handleStartRecording}
-          >
-            <FaMicrophone />
-          </button>
-          <button
-            className="bg-blue-500 text-white p-2 rounded-sm"
-            onClick={handleSendMessage}
-          >
-            <FaPaperPlane />
-          </button>
-        </div>
-      </div>
-
-      {imagePreviewUrl && (
-        <ImagePreviewModal imageUrl={imagePreviewUrl} onClose={handleCloseImagePreview} />
-      )}
-      {videoPreviewUrl && (
-        <VideoPreviewModal videoUrl={videoPreviewUrl} onClose={handleCloseVideoPreview} />
-      )}
+      {/* Message Input */}
+      <MessageInput
+        roomId={roomId}
+        socket={socket}
+        user={user}
+        baseURL={baseURL}
+        token={token}
+        socketConnected={socketConnected}
+      />
     </div>
   );
 };
 
 export default ChatMessage;
-

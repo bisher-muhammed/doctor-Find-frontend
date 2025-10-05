@@ -6,7 +6,7 @@ import { toast, ToastContainer } from 'react-toastify';
 function FPotp() {
     const [otpValues, setOtpValues] = useState(['', '', '', '']);
     const inputRefs = useRef(Array.from({ length: 4 }, () => React.createRef()));
-    const baseURL = 'http://127.0.0.1:8000';
+    const baseURL = import.meta.env.VITE_REACT_APP_API_URL
     const navigate = useNavigate();
     const registeredEmail = localStorage.getItem('registeredEmail');
     const user_id = localStorage.getItem('user_id');

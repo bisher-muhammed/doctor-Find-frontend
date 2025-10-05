@@ -5,7 +5,7 @@ import { loadRazorpayScript } from '../../../utils/razorpay';
 const PaymentComponent = ({ transactionId }) => {
     const [error, setError] = useState(null);
     const token = localStorage.getItem('access');
-    const baseURL = 'http://127.0.0.1:8000';
+    const baseURL = import.meta.env.VITE_REACT_APP_API_URL
 
     // API call to verify Razorpay payment
     const verifyPayment = async (paymentData) => {

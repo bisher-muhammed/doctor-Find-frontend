@@ -1,5 +1,3 @@
-// src/Components/Admin/AdminDashboard.jsx
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
@@ -34,18 +32,25 @@ function AdminDashboard() {
     };
 
     return (
-        <div style={{ display: 'flex', height: '100vh' }}>
-            {/* Replace the sidebar with the new AdminSidebar component */}
+        <div className="flex h-screen">
+            {/* Sidebar */}
             <AdminSidebar isAdmin={authentication_user.isAdmin} onLogout={logout} />
 
             {/* Main Content Area */}
-            <div style={{ flexGrow: 1, padding: 16, backgroundColor: '#f4f6f8' }}>
-                {/* Total Revenue, Doctors, and Patients Boxes */}
-                <TotalRevenueDisplay />
+            <div className="flex flex-col flex-1 bg-gray-100">
+                {/* Header */}
+                
 
-                {/* Chart Section */}
-                <RevenueChart />
-                {/* <ApexChart /> */}
+                {/* Main Content */}
+                <main className="flex-1 p-6 overflow-y-auto">
+                    <TotalRevenueDisplay />
+
+                    {/* Chart Section */}
+                    <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
+                        <RevenueChart />
+                        {/* <ApexChart /> */}
+                    </div>
+                </main>
             </div>
         </div>
     );

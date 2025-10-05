@@ -5,7 +5,7 @@ import { Typography, Badge } from '@mui/material';
 const UnreadNotificationCount = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const token = localStorage.getItem('access'); // Retrieve the token from localStorage
-    const baseURL = 'http://127.0.0.1:8000';
+    const baseURL = import.meta.env.VITE_REACT_APP_API_URL
 
     useEffect(() => {
         const fetchUnreadCount = async () => {

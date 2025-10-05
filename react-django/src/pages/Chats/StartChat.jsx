@@ -8,7 +8,7 @@ const StartChat = ({ doctorId }) => {
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const baseURL = 'http://127.0.0.1:8000';
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL
   const token = localStorage.getItem('access');
 
   const handleStartChat = async () => {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import * as Yup from 'yup';
 import 'react-toastify/dist/ReactToastify.css';
 
 function DoctorPasswordReset() {
@@ -10,40 +11,52 @@ function DoctorPasswordReset() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { id } = useParams();
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
+
+  // Password validation schema using Yup
+  const passwordSchema = Yup.string()
+    .required('Password is required')
+    .min(8, 'Password must be at least 8 characters')
+    .matches(/[A-Z]/, 'Must contain at least one uppercase letter')
+    .matches(/\d/, 'Must contain at least one number')
+    .matches(/[!@#$%^&*(),.?":{}|<>]/, 'Must contain at least one special character');
 
   const handlePasswordReset = async (event) => {
     event.preventDefault();
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('password', password);
+    setError(null);
 
     try {
+      await passwordSchema.validate(password); // Validate the password
+
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('password', password);
+
       const response = await axios.post(
-        `http://127.0.0.1:8000/api/doctors/doctor/change-password/${id}/`,
+        `${baseURL}/api/doctors/doctor/change-password/${id}/`,
         formData
       );
 
       if (response.data.success) {
-        navigate("/doctor/login");
         toast.success('Password reset successful');
         localStorage.clear();
+        navigate("/doctor/login");
       } else {
-        setError(response.data.message);
+        setError(response.data.message || 'Password reset failed');
       }
-    } catch (error) {
-      console.error("Error resetting password:", error);
+    } catch (err) {
+      setError(err.message); // Yup error or API error
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
       <h2 className="text-3xl font-bold mb-6 text-yellow-500">Enter New Password</h2>
-      <form onSubmit={handlePasswordReset} method="post" className="max-w-lg bg-yellow-600 rounded-xl p-8 shadow-lg">
+      <form onSubmit={handlePasswordReset} className="max-w-lg bg-yellow-600 rounded-xl p-8 shadow-lg">
         <div className="mb-6">
           <div className="flex items-center border-2 py-2 px-3 rounded-2xl bg-yellow-200">
             <input

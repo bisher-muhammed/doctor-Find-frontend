@@ -6,10 +6,10 @@ function HeaderLayout() {
   return (
     <>
       <Header />
-      <main className="p-4">
+      <>
         {/* Outlet is where the child routes will be rendered */}
         <Outlet />
-      </main>
+      </>
     </>
   );
 }

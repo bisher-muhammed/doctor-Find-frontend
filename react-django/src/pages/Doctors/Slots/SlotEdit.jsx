@@ -17,11 +17,12 @@ const SlotEdit = ({ slotId, onClose, onSave }) => {
     const [loading, setLoading] = useState(true);
     const dispatch = useDispatch();
     const token = localStorage.getItem('access');
+    const baseURL = import.meta.env.VITE_REACT_APP_API_URL
 
     useEffect(() => {
         const fetchSlot = async () => {
             try {
-                const response = await axios.get(`http://127.0.0.1:8000/api/doctors/doctor/single_slot/${slotId}/`, {
+                const response = await axios.get(`${baseURL}/api/doctors/doctor/single_slot/${slotId}/`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Accept': 'application/json',
@@ -73,7 +74,7 @@ const SlotEdit = ({ slotId, onClose, onSave }) => {
 
         try {
             const response = await axios.patch(
-                `http://127.0.0.1:8000/api/doctors/doctor/single_slot/${slotId}/`,
+                `${baseURL}/api/doctors/doctor/single_slot/${slotId}/`,
                 payload,
                 {
                     headers: {

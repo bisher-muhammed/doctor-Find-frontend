@@ -51,6 +51,7 @@ import AdminUsers from './pages/Admin/AdminUsers';
 import SalesReport from './pages/Admin/SalesReport';
 import DoctorNotification from './Components/Doctors/DoctorNotification';
 import AboutPage from './pages/User/AboutPage';
+import AdminBookings from './pages/Admin/AdminBookings';
 
 function App() {
   const { isAuthenticated } = useSelector(state => state.authUser);
@@ -90,6 +91,12 @@ function App() {
               <AdminUsers />
             </PrivateRoutes>
           } />
+
+          <Route exact path='/admin/Bookings'element ={
+            <PrivateRoutes role="admin">
+            <AdminBookings/>
+            </PrivateRoutes>
+            }/>'
           <Route exact path="/admin/sales_report" element={
             <PrivateRoutes role="admin">
               <SalesReport />

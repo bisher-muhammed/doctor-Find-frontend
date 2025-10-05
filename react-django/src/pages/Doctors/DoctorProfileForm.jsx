@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 const DoctorProfileForm = () => {
-  const baseURL = 'http://127.0.0.1:8000';
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL
   const [formData, setFormData] = useState({
     first_name: '',
     second_name: '',

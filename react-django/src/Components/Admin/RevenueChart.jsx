@@ -11,7 +11,7 @@ function RevenueChart() {
   const [error, setError] = useState("");
   const [isMonthly, setIsMonthly] = useState(false); // State to track the current chart type
 
-  const baseURL = 'http://127.0.0.1:8000';
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL
   const token = localStorage.getItem('access');
 
   // Fetch data from the backend when the component loads

@@ -4,12 +4,12 @@ import axios from 'axios';
 
 const ApexChart = () => {
     const [series, setSeries] = useState([]); // State to hold the revenue amounts
-    const baseURL = 'http://127.0.0.1:8000';
+    const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
     const token = localStorage.getItem('access');
 
     const [options, setOptions] = useState({
         chart: {
-            width: 380,
+            width: '100%',
             type: 'pie',
             toolbar: { show: false }, // Disable the toolbar for cleaner UI
         },
@@ -19,7 +19,7 @@ const ApexChart = () => {
             breakpoint: 480,
             options: {
                 chart: {
-                    width: 200,
+                    width: 300,
                 },
                 legend: {
                     position: 'bottom',
@@ -35,7 +35,7 @@ const ApexChart = () => {
             shared: true, // Allow tooltip to show multiple values
             intersect: false, // Show tooltip even if the mouse is not directly over the slice
             y: {
-                formatter: (val) => `Revenue: ${val !== undefined ? val : 0}`, // Format tooltip to display revenue
+                formatter: (val) => `Revenue: ₹${val !== undefined ? val : 0}`, // Format tooltip to display revenue
             },
         },
         dataLabels: {
@@ -43,15 +43,16 @@ const ApexChart = () => {
             formatter: (val, opts) => {
                 const label = opts.w.globals.labels[opts.dataPointIndex];
                 // Ensure we display a valid value and avoid undefined
-                return `${label}: ${val !== undefined ? val : 0}`; 
+                return `${label}: ₹${val !== undefined ? val : 0}`; 
             },
         },
         title: {
             text: 'Revenue by Doctor Specification', // Add a title to the chart
             align: 'center',
             style: {
-                fontSize: '16px',
+                fontSize: '18px',
                 fontWeight: 'bold',
+                color: '#333'
             },
         },
     });
@@ -96,9 +97,9 @@ const ApexChart = () => {
     }, [baseURL, token]); // Added dependencies
 
     return (
-        <div>
+        <div className="flex flex-col items-center bg-white p-6 rounded-lg shadow-md">
             <div id="chart" style={{ width: '100%', height: '400px' }}>
-                <ReactApexChart options={options} series={series} type="pie" width={380} />
+                <ReactApexChart options={options} series={series} type="pie" width="100%" />
             </div>
             <div id="html-dist"></div>
         </div>

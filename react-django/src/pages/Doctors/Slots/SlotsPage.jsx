@@ -37,11 +37,12 @@ const SlotsPage = () => {
     const [slotToDelete, setSlotToDelete] = useState(null);
     const [editingSlot, setEditingSlot] = useState(null);
     const [showEdit, setShowEdit] = useState(false);
+    const baseURL = import.meta.env.VITE_REACT_APP_API_URL
 
     const fetchSlots = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await axios.get("http://127.0.0.1:8000/api/doctors/doctor/slots/", {
+            const response = await axios.get(`${baseURL}/api/doctors/doctor/slots/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -85,7 +86,7 @@ const SlotsPage = () => {
         if (slotToDelete !== null) {
             console.log('Slot to delete:', slotToDelete);
             try {
-                await axios.delete(`http://127.0.0.1:8000/api/doctors/doctor/delete_slot/${slotToDelete}/`, {
+                await axios.delete(`${baseURL}/api/doctors/doctor/delete_slot/${slotToDelete}/`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Accept': 'application/json',

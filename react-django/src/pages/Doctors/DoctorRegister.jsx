@@ -12,26 +12,36 @@ import {
   Typography,
 } from "@material-tailwind/react";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { registrationSchema } from "../validationSchema"; // Make sure the path is correct
 
 function DoctorRegister() {
-  const baseURL = "http://127.0.0.1:8000";
-  const [usernameError, setUsernameError] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [cpasswordError, setCPasswordError] = useState("");
-  const [phone_numberError, setPhone_numberError] = useState("");
-  const [loginError, setLoginError] = useState("");
+  const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    phone_number: '',
+    password: '',
+    password_confirm: ''
+  });
+
+  const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showCPassword, setShowCPassword] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
   const navigate = useNavigate();
   const authentication_user = useSelector(state => state.authUser);
-    
+
   useEffect(() => {
     if (authentication_user.isAuthenticated && !authentication_user.isAdmin) {
       navigate('/home');
     }
   }, [authentication_user, navigate]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormErrors({ ...formErrors, [e.target.name]: '' }); // clear field error as user types
+  };
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
@@ -43,83 +53,48 @@ function DoctorRegister() {
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
-    const username = event.target.username.value;
-    const email = event.target.email.value;
-    const phone_number = event.target.phone_number.value;
-    const password = event.target.password.value;
-    const cpassword = event.target.cpassword.value;
-    const alphabeticRegex = /^[A-Za-z]+$/;
-
-    // Form validation
-    if (!username.trim()) {
-      setUsernameError("Username is required");
-      return;
-    }
-    if (!alphabeticRegex.test(username)) {
-      setUsernameError("Username must contain only alphabetic characters");
-      return;
-    }
-    if (username.length > 0 && username.length < 4) {
-      setUsernameError("Length must be at least 4 characters");
-      return;
-    }
-    if (!email.trim()) {
-      setEmailError("Email is required *");
-      return;
-    }
-    if (!phone_number.trim()) {
-      setPhone_numberError("Phone number is required *");
-      return;
-    }
-    if (!password.trim()) {
-      setPasswordError("Password is required");
-      return;
-    }
-    if (password.length > 0 && password.length < 8) {
-      setPasswordError("Password must be at least 8 characters");
-      return;
-    }
-    if (!cpassword.trim()) {
-      setCPasswordError("Confirm password is required");
-      return;
-    }
-    if (password !== cpassword) {
-      setCPasswordError("Passwords do not match");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("username", username);
-    formData.append("email", email);
-    formData.append("phone_number", phone_number);
-    formData.append("password", password);
 
     try {
-      const res = await axios.post(`${baseURL}/api/doctors/doctor/register/`, formData);
-      if (res.status === 201) { // Changed to 201 for successful creation
-        console.log("Server response:", res.data);
+      await registrationSchema.validate(formData, { abortEarly: false });
+      setFormErrors({});
+    } catch (validationErrors) {
+      const errors = {};
+      validationErrors.inner.forEach(err => {
+        errors[err.path] = err.message;
+      });
+      setFormErrors(errors);
+      return;
+    }
+
+    try {
+      const res = await axios.post(`${baseURL}/api/doctors/doctor/register/`, {
+        username: formData.username,
+        email: formData.email,
+        phone_number: formData.phone_number,
+        password: formData.password
+      });
+
+      if (res.status === 201) {
         const registeredEmail = res.data.email;
         localStorage.setItem("registeredEmail", registeredEmail);
         localStorage.setItem("user_id", res.data.user_id);
         toast.success("OTP sent successfully");
-        console.log("Navigating to /doctor/doctorOtp");
         navigate("/doctor/doctorOtp");
       }
     } catch (error) {
       if (error.response) {
-        if (error.response.status === 406) {
-          toast.error("Registration failed");
-        } else if (error.response.status === 400) {
-          const errorData = error.response.data;
+        const errorData = error.response.data;
+        if (error.response.status === 400) {
           if (errorData.email) {
-            setEmailError(errorData.email);
+            setFormErrors(prev => ({ ...prev, email: errorData.email[0] }));
           }
           toast.error("Registration failed");
         } else {
           toast.error("An unexpected error occurred");
         }
       } else {
-        console.log(error);
+        console.error("Request failed", error);
+        toast.error("Network error. Please try again.");
       }
     }
   };
@@ -135,34 +110,43 @@ function DoctorRegister() {
             <div className="mb-4">
               <Input
                 label="Username"
-                type="text"
                 name="username"
-                error={!!usernameError}
+                value={formData.username}
+                onChange={handleChange}
+                error={!!formErrors.username}
               />
-              {usernameError && (
+              {formErrors.username && (
                 <Typography variant="small" color="red" className="mt-1">
-                  {usernameError}
+                  {formErrors.username}
                 </Typography>
               )}
             </div>
             <div className="mb-4">
-              <Input label="Email" type="email" name="email" error={!!emailError} />
-              {emailError && (
+              <Input
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={!!formErrors.email}
+              />
+              {formErrors.email && (
                 <Typography variant="small" color="red" className="mt-1">
-                  {emailError}
+                  {formErrors.email}
                 </Typography>
               )}
             </div>
             <div className="mb-4">
               <Input
                 label="Phone Number"
-                type="text"
                 name="phone_number"
-                error={!!phone_numberError}
+                value={formData.phone_number}
+                onChange={handleChange}
+                error={!!formErrors.phone_number}
               />
-              {phone_numberError && (
+              {formErrors.phone_number && (
                 <Typography variant="small" color="red" className="mt-1">
-                  {phone_numberError}
+                  {formErrors.phone_number}
                 </Typography>
               )}
             </div>
@@ -171,7 +155,9 @@ function DoctorRegister() {
                 label="Password"
                 type={showPassword ? "text" : "password"}
                 name="password"
-                error={!!passwordError}
+                value={formData.password}
+                onChange={handleChange}
+                error={!!formErrors.password}
               />
               <span
                 className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
@@ -179,9 +165,9 @@ function DoctorRegister() {
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </span>
-              {passwordError && (
+              {formErrors.password && (
                 <Typography variant="small" color="red" className="mt-1">
-                  {passwordError}
+                  {formErrors.password}
                 </Typography>
               )}
             </div>
@@ -189,8 +175,10 @@ function DoctorRegister() {
               <Input
                 label="Confirm Password"
                 type={showCPassword ? "text" : "password"}
-                name="cpassword"
-                error={!!cpasswordError}
+                name="password_confirm"
+                value={formData.password_confirm}
+                onChange={handleChange}
+                error={!!formErrors.password_confirm}
               />
               <span
                 className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
@@ -198,9 +186,9 @@ function DoctorRegister() {
               >
                 {showCPassword ? <FaEyeSlash /> : <FaEye />}
               </span>
-              {cpasswordError && (
+              {formErrors.password_confirm && (
                 <Typography variant="small" color="red" className="mt-1">
-                  {cpasswordError}
+                  {formErrors.password_confirm}
                 </Typography>
               )}
             </div>

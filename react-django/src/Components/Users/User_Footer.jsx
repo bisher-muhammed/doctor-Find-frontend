@@ -3,31 +3,30 @@ import { Link } from "react-router-dom";
 import { FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from "react-icons/fa";
 import footer from '../../assets/footer.jpg';
 
-
 function User_Footer() {
   return (
-    <footer className="bg-slate-500 lg:grid lg:grid-cols-5">
+    <footer className="bg-black w-full lg:grid lg:grid-cols-5">
       <div className="relative block lg:col-span-2 lg:h-full">
         <img
           src={footer} 
           alt="Footer background"
-          className="absolute inset-0 h-full px-4 py-4 w-1/2  object-cover rounded-lg opacity-50"
+          className="absolute inset-0 h-1/2 w-1/2 object-cover opacity-50 mt-20 ml-10 "
         />
       </div>
 
       <div className="container mx-auto px-4 py-16 sm:px-6 lg:col-span-3 lg:px-8">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">FIND Doctor</h1>
-            <p className="text-sm">&copy; {new Date().getFullYear()} All rights reserved.</p>
+            <h1 className="text-2xl font-bold text-white">FIND Doctor</h1>
+            <p className="text-sm text-gray-300">&copy; {new Date().getFullYear()} All rights reserved.</p>
 
-            <p>
-              <span className="text-xs uppercase tracking-wide text-gray-500">Call us</span>
-              <a href="tel:+0123456789" className="block text-2xl font-medium text-gray-900 hover:opacity-75 sm:text-3xl">
+            <p className="mt-4">
+              <span className="text-xs uppercase tracking-wide text-gray-300">Call us</span>
+              <a href="tel:+0123456789" className="block text-2xl font-medium text-white hover:opacity-75 sm:text-3xl mt-1">
                 9847112061
               </a>
             </p>
-            <ul className="mt-8 space-y-1 text-sm text-gray-700">
+            <ul className="mt-8 space-y-1 text-sm text-gray-300">
               <li>Monday to Friday: 10am - 5pm</li>
               <li>Weekend: 10am - 3pm</li>
             </ul>
@@ -48,16 +47,14 @@ function User_Footer() {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold">Links</h3>
-            <nav className="mt-4 space-y-1 text-sm text-gray-700">
-              <Link to="/" className="hover:underline">Home</Link>
-              <Link to="/about" className="hover:underline">About Us</Link>
-              <Link to="/services" className="hover:underline">Services</Link>
-              <Link to="/contact" className="hover:underline">Contact</Link>
-              <Link to="/privacy" className="hover:underline">Privacy Policy</Link>
-              <Link to="/terms" className="hover:underline">Terms of Service</Link>
-              <Link to="/faq" className="hover:underline">FAQ</Link>
-              <Link to="/support" className="hover:underline">Support</Link>
+            <nav className="mt-4 space-y-1 text-sm text-gray-300 flex flex-col gap-3 pt-5">
+              <Link to="/" className="hover:text-white">Home</Link>
+              <Link to="/about" className="hover:text-white">About</Link>
+              <Link to="/user_details" className="hover:text-white">Profile</Link>
+              <Link to="/doctors_list" className="hover:text-white">Doctors</Link>
+              <Link to="/appoinments" className="hover:text-white">Appointments</Link>
+              <Link to="/wallet" className="hover:text-white">Wallet</Link>
+              <Link to="/edit_profile" className="hover:text-white">Edit Profile</Link>
             </nav>
           </div>
         </div>
@@ -67,5 +64,3 @@ function User_Footer() {
 }
 
 export default User_Footer;
-
-

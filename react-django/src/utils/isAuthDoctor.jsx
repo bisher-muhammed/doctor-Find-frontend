@@ -1,7 +1,7 @@
 import jwtDecode from 'jwt-decode';
 import axios from 'axios';
 
-const baseURL = 'http://127.0.0.1:8000'; // Backend API base URL
+const baseURL = import.meta.env.VITE_REACT_APP_API_URL // Backend API base URL
 
 // Function to refresh the doctor token if it's expired
 const updateDoctorToken = async () => {
