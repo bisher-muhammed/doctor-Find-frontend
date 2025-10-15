@@ -13,7 +13,7 @@ function AdminLogin() {
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [loginError, setLoginError] = useState('');
-    const baseURL = 'import.meta.env.VITE_REACT_APP_API_URL'
+    const baseURL = import.meta.env.VITE_REACT_APP_API_URL
 
     const handleLoginSubmit = async (event) => {
         event.preventDefault();
@@ -35,10 +35,7 @@ function AdminLogin() {
         }
 
         try {
-            const res = await axios.post(baseURL + '/api/admin/admin/login/',{
-                 email,
-                 password
-            });
+            const res = await axios.post(baseURL + '/api/admin/admin/login/', formData);
             if (res.status === 200) {
                 localStorage.setItem('access', res.data.access_token);
                 localStorage.setItem('refresh', res.data.refresh_token);
