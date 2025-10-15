@@ -35,7 +35,10 @@ function AdminLogin() {
         }
 
         try {
-            const res = await axios.post(baseURL + '/api/admin/admin/login/', formData);
+            const res = await axios.post(baseURL + '/api/admin/admin/login/',{
+                 email,
+                 password
+            });
             if (res.status === 200) {
                 localStorage.setItem('access', res.data.access_token);
                 localStorage.setItem('refresh', res.data.refresh_token);
