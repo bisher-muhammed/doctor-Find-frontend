@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { set_authentication } from '../../Redux/authenticationSlice';
 import { toast } from 'react-toastify';
 import * as Yup from 'yup';
-import { Eye, EyeOff, Stethoscope, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Stethoscope, Mail, Lock, AlertCircle, Loader2, User } from 'lucide-react';
 
 import {
   Button,
@@ -140,7 +140,7 @@ function DoctorLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header Section */}
         <div className="text-center mb-8">
@@ -152,6 +152,34 @@ function DoctorLogin() {
           </Typography>
         </div>
 
+        {/* Session Type Switcher */}
+        <div className="mb-6">
+          <div className="flex bg-gray-100 rounded-2xl p-1.5">
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="flex-1 flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition-all duration-300"
+            >
+              <User className="w-5 h-5" />
+              <span>Patient Login</span>
+            </button>
+            <button
+              type="button"
+              className="flex-1 flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-semibold bg-white text-teal-600 shadow-md border border-teal-100 transition-all duration-300"
+            >
+              <Stethoscope className="w-5 h-5" />
+              <span>Doctor Login</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Current Session Info */}
+        <div className="bg-teal-50 border border-teal-200 text-teal-700 p-4 rounded-xl text-center mb-6">
+          <p className="font-medium text-sm">
+            👨‍⚕️ Doctor Session - Access medical dashboard and patient records
+          </p>
+        </div>
+
         {/* Login Card */}
         <Card className="shadow-2xl border-0 overflow-hidden">
           <CardBody className="p-8">
@@ -161,7 +189,7 @@ function DoctorLogin() {
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
                   <Input
-                    label="Email Address"
+                    label="Doctor Email"
                     type="email"
                     name="email"
                     value={formData.email}
@@ -171,6 +199,7 @@ function DoctorLogin() {
                     color={formErrors.email ? 'red' : 'teal'}
                     className="pl-10"
                     disabled={isLoading}
+                    placeholder="Enter your doctor email"
                     containerProps={{
                       className: "min-w-0"
                     }}
@@ -201,6 +230,7 @@ function DoctorLogin() {
                     color={formErrors.password ? 'red' : 'teal'}
                     className="pl-10 pr-12"
                     disabled={isLoading}
+                    placeholder="Enter your password"
                     containerProps={{
                       className: "min-w-0"
                     }}
@@ -249,7 +279,7 @@ function DoctorLogin() {
                     Signing In...
                   </>
                 ) : (
-                  'Sign In'
+                  'Doctor Sign In'
                 )}
               </Button>
             </form>
@@ -273,18 +303,31 @@ function DoctorLogin() {
                   to="/doctor/register" 
                   className="text-teal-600 hover:text-teal-700 font-semibold ml-1 transition-colors duration-200 hover:underline"
                 >
-                  Create Account
+                  Create Doctor Account
                 </Link>
               </div>
             </div>
           </CardBody>
         </Card>
 
+        {/* Patient Redirect Notice */}
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-center">
+          <p className="text-blue-700 text-sm">
+            Are you a patient?{' '}
+            <button
+              onClick={() => navigate('/login')}
+              className="text-blue-600 font-semibold hover:underline transition-colors"
+            >
+              Switch to Patient Login
+            </button>
+          </p>
+        </div>
+
         {/* Security Notice */}
         <div className="mt-6 text-center">
           <Typography variant="small" color="gray" className="text-xs flex items-center justify-center gap-2">
             <Lock className="w-3 h-3" />
-            Your data is protected 
+            Your medical data is protected and encrypted
           </Typography>
         </div>
       </div>

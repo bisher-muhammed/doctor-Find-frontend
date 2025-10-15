@@ -13,7 +13,7 @@ function AdminLogin() {
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [loginError, setLoginError] = useState('');
-    const baseURL = 'http://127.0.0.1:8000';
+    const baseURL = 'import.meta.env.VITE_REACT_APP_API_URL'
 
     const handleLoginSubmit = async (event) => {
         event.preventDefault();
