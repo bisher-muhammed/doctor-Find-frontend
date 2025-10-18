@@ -17,8 +17,18 @@ function BookingList() {
     const [dateFilter, setDateFilter] = useState({
         startDate: '',
         endDate: '',
-        dateType: 'slot_date' // 'slot_date' or 'created_at'
+        dateType: 'slot_date'
     });
+    const [stats, setStats] = useState({
+        total: 0,
+        pending: 0,
+        completed: 0,
+        cancelled: 0,
+        today: 0
+    });
+    const [showFilters, setShowFilters] = useState(false);
+    const [updatingStatus, setUpdatingStatus] = useState({});
+    
     const bookingsPerPage = 8;
     const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
     const navigate = useNavigate();
@@ -35,22 +45,58 @@ function BookingList() {
         return {
             date: start.format('YYYY-MM-DD'),
             timeRange: `${start.format('h:mm A')} - ${end.format('h:mm A')}`,
+            displayDate: start.format('MMM DD, YYYY'),
+            isToday: start.isSame(moment(), 'day'),
+            isTomorrow: start.isSame(moment().add(1, 'day'), 'day'),
+            isPast: start.isBefore(moment(), 'day')
         };
     };
 
-    // Get status badge color
-    const getStatusColor = (status) => {
-        switch (status?.toLowerCase()) {
+    // Get status badge color and icon
+    const getStatusConfig = (status) => {
+        const statusLower = status?.toLowerCase();
+        switch (statusLower) {
             case 'pending':
-                return 'text-yellow-600 bg-yellow-100';
+                return {
+                    color: 'text-amber-600 bg-amber-50 border-amber-200',
+                    icon: '⏳',
+                    bg: 'bg-amber-500'
+                };
             case 'completed':
-                return 'text-green-600 bg-green-100';
+                return {
+                    color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+                    icon: '✅',
+                    bg: 'bg-emerald-500'
+                };
             case 'cancelled':
-                return 'text-red-600 bg-red-100';
+                return {
+                    color: 'text-rose-600 bg-rose-50 border-rose-200',
+                    icon: '❌',
+                    bg: 'bg-rose-500'
+                };
             default:
-                return 'text-gray-600 bg-gray-100';
+                return {
+                    color: 'text-gray-600 bg-gray-50 border-gray-200',
+                    icon: '📄',
+                    bg: 'bg-gray-500'
+                };
         }
     };
+
+    // Calculate statistics
+    const calculateStats = useCallback((bookingsData) => {
+        const today = moment().startOf('day');
+        const statsData = {
+            total: bookingsData.length,
+            pending: bookingsData.filter(b => b.status === 'pending').length,
+            completed: bookingsData.filter(b => b.status === 'completed').length,
+            cancelled: bookingsData.filter(b => b.status === 'cancelled').length,
+            today: bookingsData.filter(b => 
+                moment(b.slots?.start_time).isSame(today, 'day')
+            ).length
+        };
+        setStats(statsData);
+    }, []);
 
     // Handle fetch error
     const handleFetchError = useCallback((error) => {
@@ -91,8 +137,10 @@ function BookingList() {
 
             if (Array.isArray(response.data)) {
                 setBookings(response.data);
+                calculateStats(response.data);
             } else {
                 setBookings([]);
+                calculateStats([]);
                 toast.warning('No bookings data received');
             }
         } catch (error) {
@@ -100,7 +148,7 @@ function BookingList() {
         } finally {
             setLoading(false);
         }
-    }, [baseURL, navigate, handleFetchError]);
+    }, [baseURL, navigate, handleFetchError, calculateStats]);
 
     useEffect(() => {
         fetchBookings();
@@ -112,6 +160,8 @@ function BookingList() {
             toast.error('Invalid booking or status');
             return;
         }
+
+        setUpdatingStatus(prev => ({ ...prev, [bookingId]: true }));
 
         try {
             const token = localStorage.getItem('access');
@@ -138,25 +188,36 @@ function BookingList() {
                 )
             );
             
-            // Clear the status update state for this booking
+            // Recalculate stats after status update
+            calculateStats(bookings.map(b => 
+                b.id === bookingId ? { ...b, status: newStatus } : b
+            ));
+
             setStatusUpdate((prev) => {
                 const updated = { ...prev };
                 delete updated[bookingId];
                 return updated;
             });
 
-            toast.success('Booking status updated successfully');
+            toast.success(`Booking status updated to ${newStatus}`);
         } catch (error) {
             const errorMessage = error.response?.data?.detail || 'Failed to update booking status';
             toast.error(errorMessage);
             
-            // Reset the select to original status
             setStatusUpdate((prev) => {
                 const updated = { ...prev };
                 delete updated[bookingId];
                 return updated;
             });
+        } finally {
+            setUpdatingStatus(prev => ({ ...prev, [bookingId]: false }));
         }
+    };
+
+    // Quick status update handlers
+    const handleQuickStatusUpdate = (bookingId, status) => {
+        setStatusUpdate(prev => ({ ...prev, [bookingId]: status }));
+        handleStatusChange(bookingId, status);
     };
 
     // Clear all filters
@@ -170,6 +231,7 @@ function BookingList() {
         });
         setSortBy('created_at');
         setSortOrder('desc');
+        setShowFilters(false);
     };
 
     // Filter and sort bookings
@@ -216,13 +278,8 @@ function BookingList() {
                 const startDate = dateFilter.startDate ? new Date(dateFilter.startDate) : null;
                 const endDate = dateFilter.endDate ? new Date(dateFilter.endDate) : null;
 
-                // Set time to start/end of day for accurate comparison
-                if (startDate) {
-                    startDate.setHours(0, 0, 0, 0);
-                }
-                if (endDate) {
-                    endDate.setHours(23, 59, 59, 999);
-                }
+                if (startDate) startDate.setHours(0, 0, 0, 0);
+                if (endDate) endDate.setHours(23, 59, 59, 999);
 
                 if (startDate && endDate) {
                     return bookingDate >= startDate && bookingDate <= endDate;
@@ -287,16 +344,29 @@ function BookingList() {
     const paginate = (pageNumber) => {
         if (pageNumber >= 1 && pageNumber <= totalPages) {
             setCurrentPage(pageNumber);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+    };
+
+    // Quick filter handlers
+    const handleQuickFilter = (status) => {
+        setFilterStatus(status);
+        setCurrentPage(1);
     };
 
     // Loading state
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-screen">
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                    <span className="text-xl text-gray-600">Loading bookings...</span>
+                    <div className="relative">
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="h-8 w-8 bg-blue-600 rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">Loading Bookings</h3>
+                    <p className="text-gray-500">Please wait while we fetch your appointments...</p>
                 </div>
             </div>
         );
@@ -305,15 +375,16 @@ function BookingList() {
     // Error state
     if (error) {
         return (
-            <div className="container mx-auto p-4">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                    <h2 className="text-red-800 text-lg font-semibold mb-2">Error Loading Bookings</h2>
-                    <p className="text-red-600 mb-4">{error}</p>
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+                    <div className="text-6xl mb-4">😔</div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Unable to Load Bookings</h2>
+                    <p className="text-gray-600 mb-6">{error}</p>
                     <button 
                         onClick={fetchBookings}
-                        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
+                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                     >
-                        Retry
+                        Try Again
                     </button>
                 </div>
             </div>
@@ -321,408 +392,542 @@ function BookingList() {
     }
 
     return (
-        <div className="container mx-auto p-4">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold mb-4 text-center text-gray-800">Your Bookings</h1>
-                
-                {/* Filters and Controls */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border mb-6">
-                    {/* Search Bar */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Search Bookings</label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Search by patient name, username, email, or booking ID..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="mb-8 text-center">
+                    <h1 className="text-4xl font-bold text-gray-800 mb-3">Appointment Management</h1>
+                    <p className="text-gray-600 text-lg">Manage and track your patient appointments</p>
+                </div>
+
+                {/* Statistics Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                    <div 
+                        className={`bg-white rounded-xl p-4 shadow-lg border-l-4 border-blue-500 cursor-pointer transition-all hover:shadow-xl hover:scale-105 ${filterStatus === 'all' ? 'ring-2 ring-blue-300' : ''}`}
+                        onClick={() => handleQuickFilter('all')}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Total Bookings</p>
+                                <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
                             </div>
-                            {searchQuery && (
-                                <button
-                                    onClick={() => setSearchQuery('')}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                                >
-                                    <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            )}
+                            <div className="text-2xl">📊</div>
                         </div>
                     </div>
-
-                    {/* Date Filter */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Date</label>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    
+                    <div 
+                        className={`bg-white rounded-xl p-4 shadow-lg border-l-4 border-amber-500 cursor-pointer transition-all hover:shadow-xl hover:scale-105 ${filterStatus === 'pending' ? 'ring-2 ring-amber-300' : ''}`}
+                        onClick={() => handleQuickFilter('pending')}
+                    >
+                        <div className="flex items-center justify-between">
                             <div>
-                                <label className="block text-xs text-gray-600 mb-1">Date Type</label>
-                                <select
-                                    value={dateFilter.dateType}
-                                    onChange={(e) => setDateFilter(prev => ({ ...prev, dateType: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="slot_date">Appointment Date</option>
-                                    <option value="created_at">Booking Created Date</option>
-                                </select>
+                                <p className="text-sm font-medium text-gray-600">Pending</p>
+                                <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
                             </div>
-                            <div>
-                                <label className="block text-xs text-gray-600 mb-1">From Date</label>
-                                <input
-                                    type="date"
-                                    value={dateFilter.startDate}
-                                    onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600 mb-1">To Date</label>
-                                <input
-                                    type="date"
-                                    value={dateFilter.endDate}
-                                    onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                            <div className="flex items-end">
-                                <button
-                                    onClick={() => setDateFilter({ startDate: '', endDate: '', dateType: 'slot_date' })}
-                                    className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-200 transition duration-200"
-                                >
-                                    Clear Dates
-                                </button>
-                            </div>
+                            <div className="text-2xl">⏳</div>
                         </div>
                     </div>
-
-                    <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-                        <div className="flex flex-col sm:flex-row gap-4 flex-1">
-                            {/* Status Filter */}
-                            <div className="flex flex-col">
-                                <label className="text-sm font-medium text-gray-700 mb-1">Status</label>
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="all">All Status</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
+                    
+                    <div 
+                        className={`bg-white rounded-xl p-4 shadow-lg border-l-4 border-emerald-500 cursor-pointer transition-all hover:shadow-xl hover:scale-105 ${filterStatus === 'completed' ? 'ring-2 ring-emerald-300' : ''}`}
+                        onClick={() => handleQuickFilter('completed')}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Completed</p>
+                                <p className="text-2xl font-bold text-emerald-600">{stats.completed}</p>
                             </div>
-
-                            {/* Sort By */}
-                            <div className="flex flex-col">
-                                <label className="text-sm font-medium text-gray-700 mb-1">Sort By</label>
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="created_at">Created Date</option>
-                                    <option value="slot_date">Slot Date</option>
-                                    <option value="username">Patient Name</option>
-                                    <option value="status">Status</option>
-                                </select>
-                            </div>
-
-                            {/* Sort Order */}
-                            <div className="flex flex-col">
-                                <label className="text-sm font-medium text-gray-700 mb-1">Order</label>
-                                <select
-                                    value={sortOrder}
-                                    onChange={(e) => setSortOrder(e.target.value)}
-                                    className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="desc">Newest First</option>
-                                    <option value="asc">Oldest First</option>
-                                </select>
-                            </div>
+                            <div className="text-2xl">✅</div>
                         </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-2">
-                            <button
-                                onClick={clearAllFilters}
-                                className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition duration-200 flex items-center gap-2"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                                Clear All
-                            </button>
-                            <button
-                                onClick={fetchBookings}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                Refresh
-                            </button>
+                    </div>
+                    
+                    <div 
+                        className={`bg-white rounded-xl p-4 shadow-lg border-l-4 border-rose-500 cursor-pointer transition-all hover:shadow-xl hover:scale-105 ${filterStatus === 'cancelled' ? 'ring-2 ring-rose-300' : ''}`}
+                        onClick={() => handleQuickFilter('cancelled')}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Cancelled</p>
+                                <p className="text-2xl font-bold text-rose-600">{stats.cancelled}</p>
+                            </div>
+                            <div className="text-2xl">❌</div>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-xl p-4 shadow-lg border-l-4 border-purple-500">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Today</p>
+                                <p className="text-2xl font-bold text-purple-600">{stats.today}</p>
+                            </div>
+                            <div className="text-2xl">📅</div>
                         </div>
                     </div>
                 </div>
 
-                {/* Results Summary */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-600 mb-4 gap-2">
-                    <div>
-                        Showing {currentBookings.length} of {filteredBookings.length} bookings
-                        {bookings.length !== filteredBookings.length && ` (filtered from ${bookings.length} total)`}
-                    </div>
-                    {(searchQuery || filterStatus !== 'all' || dateFilter.startDate || dateFilter.endDate) && (
-                        <div className="flex flex-wrap gap-2">
-                            <span className="text-xs text-gray-500">Active filters:</span>
-                            {searchQuery && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                                    Search: "{searchQuery}"
-                                    <button
-                                        onClick={() => setSearchQuery('')}
-                                        className="ml-1 text-blue-600 hover:text-blue-800"
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            )}
-                            {filterStatus !== 'all' && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                                    Status: {filterStatus}
-                                    <button
-                                        onClick={() => setFilterStatus('all')}
-                                        className="ml-1 text-green-600 hover:text-green-800"
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            )}
-                            {(dateFilter.startDate || dateFilter.endDate) && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                                    Date: {dateFilter.startDate || 'Start'} - {dateFilter.endDate || 'End'}
-                                    <button
-                                        onClick={() => setDateFilter({ startDate: '', endDate: '', dateType: 'slot_date' })}
-                                        className="ml-1 text-purple-600 hover:text-purple-800"
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {filteredBookings.length === 0 ? (
-                <div className="text-center py-12">
-                    <div className="text-gray-400 text-6xl mb-4">
-                        {searchQuery || filterStatus !== 'all' || dateFilter.startDate || dateFilter.endDate ? '🔍' : '📅'}
-                    </div>
-                    <p className="text-xl text-gray-600 mb-2">
-                        {searchQuery || filterStatus !== 'all' || dateFilter.startDate || dateFilter.endDate 
-                            ? 'No bookings match your filters' 
-                            : 'No bookings found'
-                        }
-                    </p>
-                    <p className="text-gray-500 mb-4">
-                        {searchQuery || filterStatus !== 'all' || dateFilter.startDate || dateFilter.endDate 
-                            ? 'Try adjusting your search or filters to see more results.' 
-                            : 'You don\'t have any bookings yet.'
-                        }
-                    </p>
-                    {(searchQuery || filterStatus !== 'all' || dateFilter.startDate || dateFilter.endDate) && (
-                        <button
-                            onClick={clearAllFilters}
-                            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-200"
-                        >
-                            Clear All Filters
-                        </button>
-                    )}
-                </div>
-            ) : (
-                <>
-                    {/* Mobile View */}
-                    <div className="md:hidden space-y-4">
-                        {currentBookings.map((booking) => {
-                            const userUsername = booking.user?.username || 'N/A';
-                            const { date, timeRange } = formatSlot(booking.slots);
-
-                            return (
-                                <div key={booking.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className="font-semibold text-lg text-gray-800">{userUsername}</div>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                                            {booking.status?.toUpperCase()}
-                                        </span>
+                {/* Main Content Card */}
+                <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                    {/* Filters Header */}
+                    <div className="p-6 border-b border-gray-200">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div className="flex-1">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search patients, emails, or booking IDs..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    />
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center">
+                                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
                                     </div>
-                                    
-                                    <div className="space-y-2 text-sm text-gray-600">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium">Date:</span>
-                                            <span>{date}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium">Time:</span>
-                                            <span>{timeRange}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium">Created:</span>
-                                            <span>{moment(booking.created_at).format('MMM DD, YYYY')}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4 space-y-3">
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-700 mb-1">Update Status</label>
-                                            <select
-                                                value={statusUpdate[booking.id] || booking.status}
-                                                onChange={(e) => {
-                                                    const newStatus = e.target.value;
-                                                    setStatusUpdate((prev) => ({ ...prev, [booking.id]: newStatus }));
-                                                    handleStatusChange(booking.id, newStatus);
-                                                }}
-                                                className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <option value="pending">Pending</option>
-                                                <option value="completed">Completed</option>
-                                                <option value="cancelled">Cancelled</option>
-                                            </select>
-                                        </div>
-                                        
-                                        <Link 
-                                            to={`/doctor/Bookings/booking_details/${booking.id}`} 
-                                            className="block w-full text-center bg-blue-50 text-blue-600 hover:bg-blue-100 py-2 px-4 rounded-md transition duration-200 font-medium"
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            className="absolute inset-y-0 right-0 pr-4 flex items-center"
                                         >
-                                            View Full Details
-                                        </Link>
+                                            <svg className="h-5 w-5 text-gray-400 hover:text-gray-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className="flex items-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
+                                    </svg>
+                                    Filters
+                                    {showFilters && <span className="w-2 h-2 bg-blue-500 rounded-full"></span>}
+                                </button>
+
+                                <button
+                                    onClick={fetchBookings}
+                                    className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Expandable Filters */}
+                        {showFilters && (
+                            <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Status Filter</label>
+                                        <select
+                                            value={filterStatus}
+                                            onChange={(e) => setFilterStatus(e.target.value)}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        >
+                                            <option value="all">All Status</option>
+                                            <option value="pending">Pending</option>
+                                            <option value="completed">Completed</option>
+                                            <option value="cancelled">Cancelled</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                                        <select
+                                            value={sortBy}
+                                            onChange={(e) => setSortBy(e.target.value)}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        >
+                                            <option value="created_at">Created Date</option>
+                                            <option value="slot_date">Appointment Date</option>
+                                            <option value="username">Patient Name</option>
+                                            <option value="status">Status</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Date Type</label>
+                                        <select
+                                            value={dateFilter.dateType}
+                                            onChange={(e) => setDateFilter(prev => ({ ...prev, dateType: e.target.value }))}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        >
+                                            <option value="slot_date">Appointment Date</option>
+                                            <option value="created_at">Booking Date</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-end gap-2">
+                                        <button
+                                            onClick={clearAllFilters}
+                                            className="flex-1 bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 transition-all"
+                                        >
+                                            Clear All
+                                        </button>
                                     </div>
                                 </div>
-                            );
-                        })}
+
+                                {/* Date Range */}
+                                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+                                        <input
+                                            type="date"
+                                            value={dateFilter.startDate}
+                                            onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+                                        <input
+                                            type="date"
+                                            value={dateFilter.endDate}
+                                            onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        />
+                                    </div>
+                                    <div className="flex items-end">
+                                        <button
+                                            onClick={() => setDateFilter({ startDate: '', endDate: '', dateType: 'slot_date' })}
+                                            className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-all"
+                                        >
+                                            Clear Dates
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Desktop/Table View */}
-                    <div className="hidden md:block bg-white rounded-lg shadow-sm border overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Update Status</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {currentBookings.map((booking) => {
-                                        const userUsername = booking.user?.username || 'N/A';
-                                        const { date, timeRange } = formatSlot(booking.slots);
-
-                                        return (
-                                            <tr key={booking.id} className="hover:bg-gray-50 transition duration-200">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="font-medium text-gray-900">{userUsername}</div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-600">{date}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-600">{timeRange}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                                                        {booking.status?.toUpperCase()}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                                                    {moment(booking.created_at).format('MMM DD, YYYY')}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <select
-                                                        value={statusUpdate[booking.id] || booking.status}
-                                                        onChange={(e) => {
-                                                            const newStatus = e.target.value;
-                                                            setStatusUpdate((prev) => ({ ...prev, [booking.id]: newStatus }));
-                                                            handleStatusChange(booking.id, newStatus);
-                                                        }}
-                                                        className="border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    >
-                                                        <option value="pending">Pending</option>
-                                                        <option value="completed">Completed</option>
-                                                        <option value="cancelled">Cancelled</option>
-                                                    </select>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <Link 
-                                                        to={`/doctor/Bookings/booking_details/${booking.id}`} 
-                                                        className="text-blue-600 hover:text-blue-900 font-medium"
-                                                    >
-                                                        View Details
-                                                    </Link>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                    {/* Results Summary */}
+                    <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm">
+                            <div className="flex items-center gap-4">
+                                <span className="font-medium text-gray-700">
+                                    {filteredBookings.length} booking{filteredBookings.length !== 1 ? 's' : ''} found
+                                </span>
+                                {bookings.length !== filteredBookings.length && (
+                                    <span className="text-gray-500">
+                                        (filtered from {bookings.length} total)
+                                    </span>
+                                )}
+                            </div>
+                            
+                            {(searchQuery || filterStatus !== 'all' || dateFilter.startDate || dateFilter.endDate) && (
+                                <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+                                    {searchQuery && (
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-800 border border-blue-200">
+                                            Search: "{searchQuery}"
+                                            <button
+                                                onClick={() => setSearchQuery('')}
+                                                className="ml-2 text-blue-600 hover:text-blue-800 transition"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    )}
+                                    {filterStatus !== 'all' && (
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-green-100 text-green-800 border border-green-200">
+                                            Status: {filterStatus}
+                                            <button
+                                                onClick={() => setFilterStatus('all')}
+                                                className="ml-2 text-green-600 hover:text-green-800 transition"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    )}
+                                    {(dateFilter.startDate || dateFilter.endDate) && (
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-purple-100 text-purple-800 border border-purple-200">
+                                            Date: {dateFilter.startDate || 'Start'} - {dateFilter.endDate || 'End'}
+                                            <button
+                                                onClick={() => setDateFilter({ startDate: '', endDate: '', dateType: 'slot_date' })}
+                                                className="ml-2 text-purple-600 hover:text-purple-800 transition"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex justify-center items-center mt-6 space-x-2">
-                            <button
-                                onClick={() => paginate(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                className="px-3 py-2 bg-white border border-gray-300 text-gray-500 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                            >
-                                Previous
-                            </button>
-                            
-                            {/* Page numbers */}
-                            <div className="flex space-x-1">
-                                {[...Array(Math.min(totalPages, 5))].map((_, index) => {
-                                    let pageNumber;
-                                    if (totalPages <= 5) {
-                                        pageNumber = index + 1;
-                                    } else if (currentPage <= 3) {
-                                        pageNumber = index + 1;
-                                    } else if (currentPage >= totalPages - 2) {
-                                        pageNumber = totalPages - 4 + index;
-                                    } else {
-                                        pageNumber = currentPage - 2 + index;
-                                    }
+                    {/* Bookings Content */}
+                    {filteredBookings.length === 0 ? (
+                        <div className="text-center py-16">
+                            <div className="text-8xl mb-4">
+                                {searchQuery || filterStatus !== 'all' || dateFilter.startDate || dateFilter.endDate ? '🔍' : '📅'}
+                            </div>
+                            <h3 className="text-2xl font-semibold text-gray-700 mb-3">
+                                {searchQuery || filterStatus !== 'all' || dateFilter.startDate || dateFilter.endDate 
+                                    ? 'No matching bookings found' 
+                                    : 'No appointments scheduled'
+                                }
+                            </h3>
+                            <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                                {searchQuery || filterStatus !== 'all' || dateFilter.startDate || dateFilter.endDate 
+                                    ? 'Try adjusting your search criteria or filters to find what you\'re looking for.' 
+                                    : 'When patients book appointments with you, they will appear here for management.'
+                                }
+                            </p>
+                            {(searchQuery || filterStatus !== 'all' || dateFilter.startDate || dateFilter.endDate) && (
+                                <button
+                                    onClick={clearAllFilters}
+                                    className="bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl font-semibold"
+                                >
+                                    Clear All Filters
+                                </button>
+                            )}
+                        </div>
+                    ) : (
+                        <>
+                            {/* Mobile Cards View */}
+                            <div className="md:hidden p-4 space-y-4">
+                                {currentBookings.map((booking) => {
+                                    const userUsername = booking.user?.username || 'N/A';
+                                    const userEmail = booking.user?.email || 'N/A';
+                                    const formatted = formatSlot(booking.slots);
+                                    const statusConfig = getStatusConfig(booking.status);
 
                                     return (
-                                        <button
-                                            key={pageNumber}
-                                            onClick={() => paginate(pageNumber)}
-                                            className={`px-3 py-2 rounded-md transition ${
-                                                currentPage === pageNumber
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            {pageNumber}
-                                        </button>
+                                        <div key={booking.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
+                                            {/* Header */}
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <div className="font-semibold text-lg text-gray-800">{userUsername}</div>
+                                                    <div className="text-sm text-gray-500">{userEmail}</div>
+                                                </div>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusConfig.color}`}>
+                                                    {statusConfig.icon} {booking.status?.toUpperCase()}
+                                                </span>
+                                            </div>
+                                            
+                                            {/* Appointment Details */}
+                                            <div className="space-y-2 text-sm text-gray-600 mb-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">Date:</span>
+                                                    <span className="flex items-center gap-1">
+                                                        {formatted.displayDate}
+                                                        {formatted.isToday && <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Today</span>}
+                                                        {formatted.isTomorrow && <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Tomorrow</span>}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">Time:</span>
+                                                    <span>{formatted.timeRange}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">Booked:</span>
+                                                    <span>{moment(booking.created_at).format('MMM DD, YYYY')}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Quick Actions */}
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-2">Update Status</label>
+                                                    <div className="flex gap-2">
+                                                        {['pending', 'completed', 'cancelled'].map(status => {
+                                                            const config = getStatusConfig(status);
+                                                            return (
+                                                                <button
+                                                                    key={status}
+                                                                    onClick={() => handleQuickStatusUpdate(booking.id, status)}
+                                                                    disabled={updatingStatus[booking.id] || booking.status === status}
+                                                                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                                                                        booking.status === status 
+                                                                            ? `${config.bg} text-white shadow-md` 
+                                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                                >
+                                                                    {updatingStatus[booking.id] && booking.status === status ? (
+                                                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mx-auto"></div>
+                                                                    ) : (
+                                                                        status.charAt(0).toUpperCase() + status.slice(1)
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                
+                                                <Link 
+                                                    to={`/doctor/Bookings/booking_details/${booking.id}`} 
+                                                    className="block w-full text-center bg-blue-50 text-blue-600 hover:bg-blue-100 py-3 px-4 rounded-lg transition-all duration-200 font-medium border border-blue-200"
+                                                >
+                                                    View Full Details
+                                                </Link>
+                                            </div>
+                                        </div>
                                     );
                                 })}
                             </div>
 
-                            <button
-                                onClick={() => paginate(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                                className="px-3 py-2 bg-white border border-gray-300 text-gray-500 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                            >
-                                Next
-                            </button>
-                        </div>
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Patient</th>
+                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointment</th>
+                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Booked On</th>
+                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quick Actions</th>
+                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {currentBookings.map((booking) => {
+                                            const userUsername = booking.user?.username || 'N/A';
+                                            const userEmail = booking.user?.email || 'N/A';
+                                            const formatted = formatSlot(booking.slots);
+                                            const statusConfig = getStatusConfig(booking.status);
+
+                                            return (
+                                                <tr key={booking.id} className="hover:bg-blue-50 transition-all duration-200 group">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div>
+                                                            <div className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{userUsername}</div>
+                                                            <div className="text-sm text-gray-500">{userEmail}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-gray-900 font-medium">{formatted.displayDate}</div>
+                                                        <div className="text-sm text-gray-500">{formatted.timeRange}</div>
+                                                        {formatted.isToday && (
+                                                            <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full mt-1">Today</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusConfig.color}`}>
+                                                            {statusConfig.icon} {booking.status?.toUpperCase()}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                                                        {moment(booking.created_at).format('MMM DD, YYYY')}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex gap-1">
+                                                            {['pending', 'completed', 'cancelled'].map(status => {
+                                                                const config = getStatusConfig(status);
+                                                                return (
+                                                                    <button
+                                                                        key={status}
+                                                                        onClick={() => handleQuickStatusUpdate(booking.id, status)}
+                                                                        disabled={updatingStatus[booking.id] || booking.status === status}
+                                                                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                                                                            booking.status === status 
+                                                                                ? `${config.bg} text-white shadow-md` 
+                                                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                                        title={`Mark as ${status}`}
+                                                                    >
+                                                                        {updatingStatus[booking.id] && booking.status === status ? (
+                                                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mx-auto"></div>
+                                                                        ) : (
+                                                                            status.charAt(0).toUpperCase()
+                                                                        )}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <Link 
+                                                            to={`/doctor/Bookings/booking_details/${booking.id}`} 
+                                                            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors group-hover:underline"
+                                                        >
+                                                            View Details
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                            </svg>
+                                                        </Link>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                        <div className="text-sm text-gray-600">
+                                            Page {currentPage} of {totalPages} • {filteredBookings.length} total bookings
+                                        </div>
+                                        
+                                        <div className="flex items-center space-x-2">
+                                            <button
+                                                onClick={() => paginate(currentPage - 1)}
+                                                disabled={currentPage === 1}
+                                                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                                </svg>
+                                                Previous
+                                            </button>
+                                            
+                                            {/* Page numbers */}
+                                            <div className="flex space-x-1">
+                                                {[...Array(Math.min(totalPages, 5))].map((_, index) => {
+                                                    let pageNumber;
+                                                    if (totalPages <= 5) {
+                                                        pageNumber = index + 1;
+                                                    } else if (currentPage <= 3) {
+                                                        pageNumber = index + 1;
+                                                    } else if (currentPage >= totalPages - 2) {
+                                                        pageNumber = totalPages - 4 + index;
+                                                    } else {
+                                                        pageNumber = currentPage - 2 + index;
+                                                    }
+
+                                                    return (
+                                                        <button
+                                                            key={pageNumber}
+                                                            onClick={() => paginate(pageNumber)}
+                                                            className={`px-3 py-2 rounded-lg transition-all ${
+                                                                currentPage === pageNumber
+                                                                    ? 'bg-blue-600 text-white shadow-lg'
+                                                                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                            }`}
+                                                        >
+                                                            {pageNumber}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <button
+                                                onClick={() => paginate(currentPage + 1)}
+                                                disabled={currentPage === totalPages}
+                                                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                                            >
+                                                Next
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
-                </>
-            )}
+                </div>
+            </div>
         </div>
     );
 }
