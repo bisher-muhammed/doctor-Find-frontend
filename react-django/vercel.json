@@ -1,5 +1,4 @@
 {
-  "root": "react-django",
   "builds": [
     {
       "src": "package.json",
@@ -22,4 +21,3 @@
     }
   ]
 }
-
