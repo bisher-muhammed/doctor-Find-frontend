@@ -96,6 +96,7 @@ const DoctorChatComponent = () => {
     }
     
     socket.current = io(baseURL, { 
+      path: '/socket.io/',
       transports: ['websocket', 'polling'],
       timeout: 10000,
       reconnectionAttempts: 5
